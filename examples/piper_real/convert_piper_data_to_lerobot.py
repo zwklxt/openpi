@@ -1,7 +1,21 @@
 """
-Script to convert Aloha hdf5 data to the LeRobot dataset v2.0 format.
+Script to convert Piper hdf5 data to the LeRobot dataset v2.0 format.
 
-Example usage: uv run examples/aloha_real/convert_piper_data_to_lerobot.py --raw-dir /path/to/raw/data --repo-id <org>/<dataset-name>
+Example usage: uv run examples/piper_real/convert_piper_data_to_lerobot.py --raw-dir /path/to/raw/data --repo-id <org>/<dataset-name>
+
+Examples usage:
+uv run examples/piper_real/convert_piper_data_to_lerobot.py
+    --raw_dir path/to/raw/data  #这里的raw_data，指的是piper采集的包含 *.hdf5数据的文件路径（数据处理的入口）
+    --local_dir path/to/local/trans/result/data #这里指的是，转换后的数据，存放的本地位置，默认是None
+    --repo_id <org>/<dataset> #这里指的是在hugface上的地址，如果存放到本地，可以不指定。
+
+
+A6000:
+#假设训练一个拿瓶子任务的数据集，可以如下组织和转换数据
+uv run examples/piper_real/convert_piper_data_to_lerobot.py \
+    --raw_dir /home/ricky/workspace/wenkai.zhang/pi0-piper/data/piper_raw/pick-up-the-bottle \
+    --local_dir /home/ricky/workspace/wenkai.zhang/pi0-piper/data/piper_lerobot/pick-up-the-bottle \
+    --repo_id amigos-robot/pick-up-the-bottle
 """
 
 import dataclasses
@@ -34,6 +48,7 @@ DEFAULT_DATASET_CONFIG = DatasetConfig()
 def create_empty_dataset(
     repo_id: str,
     robot_type: str,
+    local_dir: str | Path | None = None,
     mode: Literal["video", "image"] = "video",
     *,
     has_velocity: bool = False,
@@ -58,7 +73,7 @@ def create_empty_dataset(
     ]
     cameras = [
         "cam_high",
-        "cam_low",
+        # "cam_low",
         "cam_left_wrist",
         "cam_right_wrist",
     ]
@@ -112,9 +127,13 @@ def create_empty_dataset(
     if Path(LEROBOT_HOME / repo_id).exists():
         shutil.rmtree(LEROBOT_HOME / repo_id)
 
+    if Path(local_dir).exists():
+        shutil.rmtree(local_dir)
+
     return LeRobotDataset.create(
         repo_id=repo_id,
         fps=50,
+        root=local_dir, # noqa: SIM118
         robot_type=robot_type,
         features=features,
         use_videos=dataset_config.use_videos,
@@ -155,6 +174,7 @@ def load_raw_images_per_camera(ep: h5py.File, cameras: list[str]) -> dict[str, n
             # load one compressed image after the other in RAM and uncompress
             imgs_array = []
             for data in ep[f"/observations/images/{camera}"]:
+                data = np.frombuffer(data, np.uint8)
                 imgs_array.append(cv2.imdecode(data, 1))
             imgs_array = np.array(imgs_array)
 
@@ -181,7 +201,7 @@ def load_raw_episode_data(
             ep,
             [
                 "cam_high",
-                "cam_low",
+                # "cam_low",
                 "cam_left_wrist",
                 "cam_right_wrist",
             ],
@@ -228,12 +248,13 @@ def populate_dataset(
 
 def port_aloha(
     raw_dir: Path,
-    repo_id: str,
+    repo_id: str | None = None,
+    local_dir: str | Path | None = None,
     raw_repo_id: str | None = None,
     task: str = "DEBUG",
     *,
     episodes: list[int] | None = None,
-    push_to_hub: bool = True,
+    push_to_hub: bool = False,
     is_mobile: bool = False,
     mode: Literal["video", "image"] = "image",
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
@@ -250,6 +271,7 @@ def port_aloha(
 
     dataset = create_empty_dataset(
         repo_id,
+        local_dir=local_dir,
         robot_type="mobile_aloha" if is_mobile else "aloha",
         mode=mode,
         has_effort=has_effort(hdf5_files),
