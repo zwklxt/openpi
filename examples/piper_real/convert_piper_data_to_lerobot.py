@@ -16,6 +16,12 @@ uv run examples/piper_real/convert_piper_data_to_lerobot.py \
     --raw_dir /home/ricky/workspace/wenkai.zhang/pi0-piper/data/piper_raw/pick-up-the-bottle \
     --local_dir /home/ricky/workspace/wenkai.zhang/pi0-piper/data/piper_lerobot/pick-up-the-bottle \
     --repo_id amigos-robot/pick-up-the-bottle
+
+H100:
+uv run examples/piper_real/convert_piper_data_to_lerobot.py \
+    --raw_dir data/piper_raw/grap_up_move_down \
+    --local_dir data/piper_lerobot/grap_up_move_down \
+    --repo_id amigos-robot/grap_up_move_down
 """
 
 import dataclasses

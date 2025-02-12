@@ -67,6 +67,9 @@ class DataConfig:
     # Contains precomputed normalization stats. If None, normalization will not be performed.
     norm_stats: dict[str, _transforms.NormStats] | None = None
 
+    # LeRobot data directory. If provided, will be used to load the data from the local filesystem.
+    data_dir: str | None = None
+
     # Used to adopt the inputs from a dataset specific format to a common format
     # which is expected by the data transforms.
     repack_transforms: _transforms.Group = dataclasses.field(default_factory=_transforms.Group)
@@ -88,7 +91,7 @@ class DataConfig:
     prompt_from_task: bool = False
 
     # If true, will disable syncing the dataset from the Hugging Face Hub. Allows training on local-only datasets.
-    local_files_only: bool = False
+    local_files_only: bool = True #@zwk local_files_only 默认设置为True,用本地的数据训练
 
 
 class GroupFactory(Protocol):
@@ -247,6 +250,60 @@ class LeRobotAlohaDataConfig(DataConfigFactory):
             model_transforms=model_transforms,
             action_sequence_keys=self.action_sequence_keys,
         )
+
+#add LeRobotPiperDataConfig @zwk
+@dataclasses.dataclass(frozen=True)
+class LeRobotPiperDataConfig(DataConfigFactory):
+    # If true, will convert joint dimensions to deltas with respect to the current state before passing to the model.
+    # Gripper dimensions will remain in absolute values.
+    use_delta_joint_actions: bool = True
+    # If provided, will be injected into the input data if the "prompt" key is not present.
+    default_prompt: str | None = None
+    # If true, this will convert the joint and gripper values from the standard Aloha space to
+    # the space used by the pi internal runtime which was used to train the base model. People who
+    # use standard Aloha data should set this to true.
+    adapt_to_pi: bool = True
+
+    # Repack transforms.
+    repack_transforms: tyro.conf.Suppress[_transforms.Group] = dataclasses.field(
+        default=_transforms.Group(
+            inputs=[
+                _transforms.RepackTransform(
+                    {
+                        "images": {"cam_high": "observation.images.top"},
+                        "state": "observation.state",
+                        "actions": "action",
+                    }
+                )
+            ]
+        )
+    )
+    # Action keys that will be used to read the action sequence from the dataset.
+    action_sequence_keys: Sequence[str] = ("action",)
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        data_transforms = _transforms.Group(
+            inputs=[aloha_policy.AlohaInputs(action_dim=model_config.action_dim, adapt_to_pi=self.adapt_to_pi)],
+            outputs=[aloha_policy.AlohaOutputs(adapt_to_pi=self.adapt_to_pi)],
+        )
+        if self.use_delta_joint_actions:
+            delta_action_mask = _transforms.make_bool_mask(6, -1, 6, -1)
+            data_transforms = data_transforms.push(
+                inputs=[_transforms.DeltaActions(delta_action_mask)],
+                outputs=[_transforms.AbsoluteActions(delta_action_mask)],
+            )
+
+        model_transforms = ModelTransformFactory(default_prompt=self.default_prompt)(model_config)
+
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs),
+            repack_transforms=self.repack_transforms,
+            data_transforms=data_transforms,
+            model_transforms=model_transforms,
+            action_sequence_keys=self.action_sequence_keys,
+        )
+
 
 
 @dataclasses.dataclass(frozen=True)
@@ -550,6 +607,90 @@ _CONFIGS = [
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
+    ),
+
+
+    # This config is used to test the piper model training on the piper dataset
+    # @zwk
+    TrainConfig(
+        name="pi0-piper-pick-bottle", #use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/pick-up-the-bottle",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="use left hand to pick up the bottle and put it on the blue book",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                data_dir="data/piper_lerobot/pick-up-the-bottle",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=20_000,
+        #add base config
+        batch_size=1,
+        save_interval=100,
+        overwrite=True,
+    ),
+
+    #use pi0-fast model,task = pick up the bottle env=piper
+    TrainConfig(
+        name="pi0-fast-piper-pick-bottle",  # use pi0-base model,task = pick up the bottle env=piper
+        model=pi0_fast.Pi0FASTConfig(max_token_len=300),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/pick-up-the-bottle",  # use for hugingface hub
+            # assets=AssetsConfig(
+            #     assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+            #     asset_id="trossen",
+            # ),
+            default_prompt="use left hand to pick up the bottle and put it on the blue book",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                data_dir="data/piper_lerobot/pick-up-the-bottle",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_fast_base/params"),
+        num_train_steps=20_000,
+        # freeze_filter=pi0_fast.Pi0FASTConfig(
+        #     paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        # ).get_freeze_filter(),
+        # add base config
+        batch_size=1,
+        save_interval=100,
+        overwrite=True,
+        ema_decay=None,
     ),
     #
     # Debugging configs.
