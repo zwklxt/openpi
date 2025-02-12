@@ -3,6 +3,11 @@
 This script is used to compute the normalization statistics for a given config. It
 will compute the mean and standard deviation of the data in the dataset and save it
 to the config assets directory.
+
+this is a test
+#多个GPU的时候，可以选择在某一个GPU上运行，例如：
+CUDA_VISIBLE_DEVICES=2  uv run scripts/compute_norm_stats.py --config-name pi0-piper-pick-bottle
+
 """
 
 import numpy as np
@@ -50,7 +55,7 @@ def main(config_name: str, max_frames: int | None = None):
 
     data_loader = _data_loader.TorchDataLoader(
         dataset,
-        local_batch_size=1,
+        local_batch_size=1, #这里默认的是1，可以根据GPU的内存大小进行调整
         num_workers=8,
         shuffle=shuffle,
         num_batches=num_frames,

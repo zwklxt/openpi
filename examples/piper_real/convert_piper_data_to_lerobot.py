@@ -19,9 +19,9 @@ uv run examples/piper_real/convert_piper_data_to_lerobot.py \
 
 H100:
 uv run examples/piper_real/convert_piper_data_to_lerobot.py \
-    --raw_dir data/piper_raw/grap_up_move_down \
-    --local_dir data/piper_lerobot/grap_up_move_down \
-    --repo_id amigos-robot/grap_up_move_down
+    --raw_dir /home/anker/wenkai.zhang/repo/pi0/data/piper_raw/grab_up_move_down \
+    --local_dir /home/anker/wenkai.zhang/repo/pi0/data/piper_lerobot/grab_up_move_down \
+    --repo_id amigos-robot/grab_up_move_down
 """
 
 import dataclasses
@@ -253,7 +253,7 @@ def populate_dataset(
 
 
 def port_aloha(
-    raw_dir: Path,
+    raw_dir: str | Path,
     repo_id: str | None = None,
     local_dir: str | Path | None = None,
     raw_repo_id: str | None = None,
@@ -265,6 +265,9 @@ def port_aloha(
     mode: Literal["video", "image"] = "image",
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
 ):
+    if type(raw_dir) is str:
+        raw_dir = Path(raw_dir)
+
     if (LEROBOT_HOME / repo_id).exists():
         shutil.rmtree(LEROBOT_HOME / repo_id)
 

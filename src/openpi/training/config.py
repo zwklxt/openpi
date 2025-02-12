@@ -616,7 +616,7 @@ _CONFIGS = [
         name="pi0-piper-pick-bottle", #use pi0-base model,task = pick up the bottle env=piper
         model=pi0.Pi0Config(),
         data=LeRobotPiperDataConfig(
-            repo_id="amigos-robot/pick-up-the-bottle",  #use for hugingface hub
+            repo_id="amigos-robot/grab_up_move_down",  #use for hugingface hub
             assets=AssetsConfig(
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
@@ -639,15 +639,17 @@ _CONFIGS = [
             ),
             base_config=DataConfig(
                 local_files_only=True,  # Set to True for local-only datasets.
-                data_dir="data/piper_lerobot/pick-up-the-bottle",
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="data/piper_lerobot/grab_up_move_down",
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
         #add base config
-        batch_size=1,
-        save_interval=100,
+        batch_size=32,
+        save_interval=2000,
         overwrite=True,
+        # wandb_enabled=False,
     ),
 
     #use pi0-fast model,task = pick up the bottle env=piper
@@ -655,7 +657,7 @@ _CONFIGS = [
         name="pi0-fast-piper-pick-bottle",  # use pi0-base model,task = pick up the bottle env=piper
         model=pi0_fast.Pi0FASTConfig(max_token_len=300),
         data=LeRobotPiperDataConfig(
-            repo_id="amigos-robot/pick-up-the-bottle",  # use for hugingface hub
+            repo_id="amigos-robot/grab_up_move_down",  # use for hugingface hub
             # assets=AssetsConfig(
             #     assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
             #     asset_id="trossen",
@@ -678,7 +680,8 @@ _CONFIGS = [
             ),
             base_config=DataConfig(
                 local_files_only=True,  # Set to True for local-only datasets.
-                data_dir="data/piper_lerobot/pick-up-the-bottle",
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="data/piper_lerobot/grab_up_move_down",
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_fast_base/params"),
@@ -687,8 +690,8 @@ _CONFIGS = [
         #     paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         # ).get_freeze_filter(),
         # add base config
-        batch_size=1,
-        save_interval=100,
+        batch_size=8,
+        # save_interval=100,
         overwrite=True,
         ema_decay=None,
     ),
