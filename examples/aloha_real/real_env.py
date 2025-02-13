@@ -51,8 +51,9 @@ class RealEnv:
         self.puppet_bot_right = InterbotixManipulatorXS(
             robot_model="vx300s", group_name="arm", gripper_name="gripper", robot_name="puppet_right", init_node=False
         )
-        if setup_robots:
+        if setup_robots: #Flase
             self.setup_robots()
+
 
         self.recorder_left = robot_utils.Recorder("left", init_node=False)
         self.recorder_right = robot_utils.Recorder("right", init_node=False)
@@ -167,5 +168,5 @@ def get_action(master_bot_left, master_bot_right):
     return action
 
 
-def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True) -> RealEnv:
+def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = False) -> RealEnv:
     return RealEnv(init_node, reset_position=reset_position, setup_robots=setup_robots)

@@ -5,10 +5,10 @@ from openpi_client import image_tools
 from openpi_client.runtime import environment as _environment
 from typing_extensions import override
 
-from examples.aloha_real import real_env as _real_env
+from examples.piper_real import real_env as _real_env
 
 
-class AlohaRealEnvironment(_environment.Environment):
+class PiperRealEnvironment(_environment.Environment):
     """An environment for an Aloha robot on real hardware."""
 
     def __init__(

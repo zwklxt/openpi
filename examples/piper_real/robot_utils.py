@@ -5,22 +5,22 @@ import datetime
 import json
 import time
 
-from aloha.msg import RGBGrayscaleImage
+# from aloha.msg import RGBGrayscaleImage
 from cv_bridge import CvBridge
 from interbotix_xs_msgs.msg import JointGroupCommand
 from interbotix_xs_msgs.msg import JointSingleCommand
 import numpy as np
 import rospy
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState,Image
 
-from examples.aloha_real import constants
+from examples.piper_real import constants
 
 
 class ImageRecorder:
     def __init__(self, init_node=True, is_debug=False):
         self.is_debug = is_debug
         self.bridge = CvBridge()
-        self.camera_names = ["cam_high", "cam_low", "cam_left_wrist", "cam_right_wrist"]
+        self.camera_names = ["cam_high", "cam_left_wrist", "cam_right_wrist"]
 
         if init_node:
             rospy.init_node("image_recorder", anonymous=True)
@@ -30,15 +30,16 @@ class ImageRecorder:
             setattr(self, f"{cam_name}_timestamp", 0.0)
             if cam_name == "cam_high":
                 callback_func = self.image_cb_cam_high
-            elif cam_name == "cam_low":
-                callback_func = self.image_cb_cam_low
+                rospy.Subscriber("/camera_f/color/image_raw", Image, callback_func)
             elif cam_name == "cam_left_wrist":
                 callback_func = self.image_cb_cam_left_wrist
+                rospy.Subscriber("/camera_l/color/image_raw", Image, callback_func)
             elif cam_name == "cam_right_wrist":
                 callback_func = self.image_cb_cam_right_wrist
+                rospy.Subscriber("/camera_r/color/image_raw", Image, callback_func)
             else:
                 raise NotImplementedError
-            rospy.Subscriber(f"/{cam_name}", RGBGrayscaleImage, callback_func)
+
             if self.is_debug:
                 setattr(self, f"{cam_name}_timestamps", deque(maxlen=50))
 
@@ -49,7 +50,7 @@ class ImageRecorder:
         setattr(
             self,
             f"{cam_name}_rgb_image",
-            self.bridge.imgmsg_to_cv2(data.images[0], desired_encoding="bgr8"),
+            self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8"),
         )
         # setattr(
         #     self,
@@ -66,15 +67,11 @@ class ImageRecorder:
         # cv2.imwrite('/home/lucyshi/Desktop/sample.jpg', cv_image)
         if self.is_debug:
             getattr(self, f"{cam_name}_timestamps").append(
-                data.images[0].header.stamp.secs + data.images[0].header.stamp.nsecs * 1e-9
+                data.header.stamp.secs + data.header.stamp.nsecs * 1e-9
             )
 
     def image_cb_cam_high(self, data):
         cam_name = "cam_high"
-        return self.image_cb(cam_name, data)
-
-    def image_cb_cam_low(self, data):
-        cam_name = "cam_low"
         return self.image_cb(cam_name, data)
 
     def image_cb_cam_left_wrist(self, data):
@@ -121,21 +118,26 @@ class Recorder:
 
         if init_node:
             rospy.init_node("recorder", anonymous=True)
-        rospy.Subscriber(f"/puppet_{side}/joint_states", JointState, self.puppet_state_cb)
-        rospy.Subscriber(
-            f"/puppet_{side}/commands/joint_group",
-            JointGroupCommand,
-            self.puppet_arm_commands_cb,
-        )
-        rospy.Subscriber(
-            f"/puppet_{side}/commands/joint_single",
-            JointSingleCommand,
-            self.puppet_gripper_commands_cb,
-        )
+        if side == "left":
+            rospy.Subscriber("/puppet/joint_left", JointState, self.puppet_state_cb)
+        if side == "right":
+            rospy.Subscriber("/puppet/joint_right", JointState, self.puppet_state_cb)
+
+        # rospy.Subscriber(
+        #     f"/puppet_{side}/commands/joint_group",
+        #     JointGroupCommand,
+        #     self.puppet_arm_commands_cb,
+        # )
+        # rospy.Subscriber(
+        #     f"/puppet_{side}/commands/joint_single",
+        #     JointSingleCommand,
+        #     self.puppet_gripper_commands_cb,
+        # )
+
         if self.is_debug:
             self.joint_timestamps = deque(maxlen=50)
-            self.arm_command_timestamps = deque(maxlen=50)
-            self.gripper_command_timestamps = deque(maxlen=50)
+            # self.arm_command_timestamps = deque(maxlen=50)
+            # self.gripper_command_timestamps = deque(maxlen=50)
         time.sleep(0.1)
 
     def puppet_state_cb(self, data):
@@ -146,15 +148,15 @@ class Recorder:
         if self.is_debug:
             self.joint_timestamps.append(time.time())
 
-    def puppet_arm_commands_cb(self, data):
-        self.arm_command = data.cmd
-        if self.is_debug:
-            self.arm_command_timestamps.append(time.time())
+    # def puppet_arm_commands_cb(self, data):
+    #     self.arm_command = data.cmd
+    #     if self.is_debug:
+    #         self.arm_command_timestamps.append(time.time())
 
-    def puppet_gripper_commands_cb(self, data):
-        self.gripper_command = data.cmd
-        if self.is_debug:
-            self.gripper_command_timestamps.append(time.time())
+    # def puppet_gripper_commands_cb(self, data):
+    #     self.gripper_command = data.cmd
+    #     if self.is_debug:
+    #         self.gripper_command_timestamps.append(time.time())
 
     def print_diagnostics(self):
         def dt_helper(l):
@@ -163,10 +165,10 @@ class Recorder:
             return np.mean(diff)
 
         joint_freq = 1 / dt_helper(self.joint_timestamps)
-        arm_command_freq = 1 / dt_helper(self.arm_command_timestamps)
-        gripper_command_freq = 1 / dt_helper(self.gripper_command_timestamps)
+        # arm_command_freq = 1 / dt_helper(self.arm_command_timestamps)
+        # gripper_command_freq = 1 / dt_helper(self.gripper_command_timestamps)
 
-        print(f"{joint_freq=:.2f}\n{arm_command_freq=:.2f}\n{gripper_command_freq=:.2f}\n")
+        # print(f"{joint_freq=:.2f}\n{arm_command_freq=:.2f}\n{gripper_command_freq=:.2f}\n")
 
 
 def get_arm_joint_positions(bot):

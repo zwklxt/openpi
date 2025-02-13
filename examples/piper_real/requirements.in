@@ -10,9 +10,10 @@ opencv-python
 packaging
 pexpect
 pyquaternion
-pyrealsense2
 pyyaml
 requests
 rospkg
 tyro
 websockets
+torch
+

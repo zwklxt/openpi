@@ -7,7 +7,7 @@ from openpi_client.runtime import runtime as _runtime
 from openpi_client.runtime.agents import policy_agent as _policy_agent
 import tyro
 
-from examples.aloha_real import env as _env
+from examples.piper_real import env as _env
 
 
 @dataclasses.dataclass
@@ -30,7 +30,7 @@ def main(args: Args) -> None:
 
     metadata = ws_client_policy.get_server_metadata()
     runtime = _runtime.Runtime(
-        environment=_env.AlohaRealEnvironment(reset_position=metadata.get("reset_pose")),
+        environment=_env.PiperRealEnvironment(reset_position=metadata.get("reset_pose")),
         agent=_policy_agent.PolicyAgent(
             policy=action_chunk_broker.ActionChunkBroker(
                 policy=ws_client_policy,

@@ -4,18 +4,37 @@ import collections
 import time
 from typing import Optional, List
 import dm_env
-from interbotix_xs_modules.arm import InterbotixManipulatorXS
-from interbotix_xs_msgs.msg import JointSingleCommand
 import numpy as np
 
-from examples.aloha_real import constants
-from examples.aloha_real import robot_utils
+import rospy
+import cv2
+import torch
+
+# from examples.aloha_real import constants
+# from examples.aloha_real import robot_utils
+
+from  examples.piper_real import ros_oper as _ros_oper
 
 # This is the reset position that is used by the standard Aloha runtime.
 DEFAULT_RESET_POSITION = [0, -0.96, 1.16, 0, -0.3, 0]
 
+ros_config = {
+    "publish_rate": 30,
 
-class RealEnv:
+}
+
+# Interpolate the actions to make the robot move smoothly
+def interpolate_action(args, prev_action, cur_action):
+    steps = np.concatenate((np.array(args["arm_steps_length"]), np.array(args["arm_steps_length"])), axis=0)
+    diff = np.abs(cur_action - prev_action)
+    step = np.ceil(diff / steps).astype(int)
+    step = np.max(step)
+    if step <= 1:
+        return cur_action[np.newaxis, :]
+    new_actions = np.linspace(prev_action, cur_action, step + 1)
+    return new_actions[1:]
+
+class PiperRealEnv:
     """
     Environment for real robot bi-manual manipulation
     Action space:      [left_arm_qpos (6),             # absolute joint position
@@ -37,135 +56,130 @@ class RealEnv:
                                    "cam_right_wrist": (480x640x3)} # h, w, c, dtype='uint8'
     """
 
-    def __init__(self, init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True):
-        # reset_position = START_ARM_POSE[:6]
-        self._reset_position = reset_position[:6] if reset_position else DEFAULT_RESET_POSITION
+    def __init__(self, init_node, *, reset_pos:Optional[List[float]] = None, setup_robots: bool = False):
+        self._reset_pos = reset_pos
+        self.ros_operator = _ros_oper.RosOperator(ros_config)
+        self.rate = rospy.Rate(ros_config["publish_rate"])
+        # self.action = None
+        self.pre_action = np.zeros(ros_config['state_dim'])
 
-        self.puppet_bot_left = InterbotixManipulatorXS(
-            robot_model="vx300s",
-            group_name="arm",
-            gripper_name="gripper",
-            robot_name="puppet_left",
-            init_node=init_node,
-        )
-        self.puppet_bot_right = InterbotixManipulatorXS(
-            robot_model="vx300s", group_name="arm", gripper_name="gripper", robot_name="puppet_right", init_node=False
-        )
-        if setup_robots:
-            self.setup_robots()
-
-        self.recorder_left = robot_utils.Recorder("left", init_node=False)
-        self.recorder_right = robot_utils.Recorder("right", init_node=False)
-        self.image_recorder = robot_utils.ImageRecorder(init_node=False)
-        self.gripper_command = JointSingleCommand(name="gripper")
 
     def setup_robots(self):
-        robot_utils.setup_puppet_bot(self.puppet_bot_left)
-        robot_utils.setup_puppet_bot(self.puppet_bot_right)
+        pass
 
-    def get_qpos(self):
-        left_qpos_raw = self.recorder_left.qpos
-        right_qpos_raw = self.recorder_right.qpos
-        left_arm_qpos = left_qpos_raw[:6]
-        right_arm_qpos = right_qpos_raw[:6]
-        left_gripper_qpos = [
-            constants.PUPPET_GRIPPER_POSITION_NORMALIZE_FN(left_qpos_raw[7])
-        ]  # this is position not joint
-        right_gripper_qpos = [
-            constants.PUPPET_GRIPPER_POSITION_NORMALIZE_FN(right_qpos_raw[7])
-        ]  # this is position not joint
-        return np.concatenate([left_arm_qpos, left_gripper_qpos, right_arm_qpos, right_gripper_qpos])
+    def reset(self,*, fake=False):
+        if not fake:
+            left0 = [-0.00133514404296875, 0.00209808349609375, 0.01583099365234375, -0.032616615295410156,
+                     -0.00286102294921875, 0.00095367431640625, 3.557830810546875]
+            right0 = [-0.00133514404296875, 0.00438690185546875, 0.034523963928222656, -0.053597450256347656,
+                      -0.00476837158203125, -0.00209808349609375, 3.557830810546875]
+            left1 = [-0.00133514404296875, 0.00209808349609375, 0.01583099365234375, -0.032616615295410156,
+                     -0.00286102294921875, 0.00095367431640625, -0.3393220901489258]
+            right1 = [-0.00133514404296875, 0.00247955322265625, 0.01583099365234375, -0.032616615295410156,
+                      -0.00286102294921875, 0.00095367431640625, -0.3397035598754883]
+            self.ros_operator.puppet_arm_publish_continuous(left0, right0)
+            input("Press enter to continue")
+            self.ros_operator.puppet_arm_publish_continuous(left1, right1)
 
-    def get_qvel(self):
-        left_qvel_raw = self.recorder_left.qvel
-        right_qvel_raw = self.recorder_right.qvel
-        left_arm_qvel = left_qvel_raw[:6]
-        right_arm_qvel = right_qvel_raw[:6]
-        left_gripper_qvel = [constants.PUPPET_GRIPPER_VELOCITY_NORMALIZE_FN(left_qvel_raw[7])]
-        right_gripper_qvel = [constants.PUPPET_GRIPPER_VELOCITY_NORMALIZE_FN(right_qvel_raw[7])]
-        return np.concatenate([left_arm_qvel, left_gripper_qvel, right_arm_qvel, right_gripper_qvel])
 
-    def get_effort(self):
-        left_effort_raw = self.recorder_left.effort
-        right_effort_raw = self.recorder_right.effort
-        left_robot_effort = left_effort_raw[:7]
-        right_robot_effort = right_effort_raw[:7]
-        return np.concatenate([left_robot_effort, right_robot_effort])
+            # Initialize the previous action to be the initial robot state
 
-    def get_images(self):
-        return self.image_recorder.get_images()
+            self.pre_action[:14] = np.array(
+                [-0.00133514404296875, 0.00209808349609375, 0.01583099365234375, -0.032616615295410156,
+                 -0.00286102294921875,
+                 0.00095367431640625, -0.3393220901489258] +
+                [-0.00133514404296875, 0.00247955322265625, 0.01583099365234375, -0.032616615295410156,
+                 -0.00286102294921875,
+                 0.00095367431640625, -0.3397035598754883]
+            )
 
-    def set_gripper_pose(self, left_gripper_desired_pos_normalized, right_gripper_desired_pos_normalized):
-        left_gripper_desired_joint = constants.PUPPET_GRIPPER_JOINT_UNNORMALIZE_FN(left_gripper_desired_pos_normalized)
-        self.gripper_command.cmd = left_gripper_desired_joint
-        self.puppet_bot_left.gripper.core.pub_single.publish(self.gripper_command)
-
-        right_gripper_desired_joint = constants.PUPPET_GRIPPER_JOINT_UNNORMALIZE_FN(
-            right_gripper_desired_pos_normalized
+        return dm_env.TimeStep(
+            step_type=dm_env.StepType.FIRST,
+            reward=self.get_reward(),
+            discount=None,
+            observation=self.get_observation()
         )
-        self.gripper_command.cmd = right_gripper_desired_joint
-        self.puppet_bot_right.gripper.core.pub_single.publish(self.gripper_command)
-
-    def _reset_joints(self):
-        robot_utils.move_arms(
-            [self.puppet_bot_left, self.puppet_bot_right], [self._reset_position, self._reset_position], move_time=1
-        )
-
-    def _reset_gripper(self):
-        """Set to position mode and do position resets: first open then close. Then change back to PWM mode"""
-        robot_utils.move_grippers(
-            [self.puppet_bot_left, self.puppet_bot_right], [constants.PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5
-        )
-        robot_utils.move_grippers(
-            [self.puppet_bot_left, self.puppet_bot_right], [constants.PUPPET_GRIPPER_JOINT_CLOSE] * 2, move_time=1
-        )
-
-    def get_observation(self):
-        obs = collections.OrderedDict()
-        obs["qpos"] = self.get_qpos()
-        obs["qvel"] = self.get_qvel()
-        obs["effort"] = self.get_effort()
-        obs["images"] = self.get_images()
-        return obs
 
     def get_reward(self):
         return 0
 
-    def reset(self, *, fake=False):
-        if not fake:
-            # Reboot puppet robot gripper motors
-            self.puppet_bot_left.dxl.robot_reboot_motors("single", "gripper", True)
-            self.puppet_bot_right.dxl.robot_reboot_motors("single", "gripper", True)
-            self._reset_joints()
-            self._reset_gripper()
-        return dm_env.TimeStep(
-            step_type=dm_env.StepType.FIRST, reward=self.get_reward(), discount=None, observation=self.get_observation()
-        )
+    def get_observation(self):
+        def jpeg_mapping(img):
+            img = cv2.imencode('.jpg', img)[1].tobytes()
+            img = cv2.imdecode(np.frombuffer(img, np.uint8), cv2.IMREAD_COLOR)
+            return img
+
+
+        print_flag = True
+
+
+        while True and not rospy.is_shutdown():
+            result = self.ros_operator.get_frame()
+            if not result:
+                if print_flag:
+                    print("syn fail when get_ros_observation")
+                    print_flag = False
+                self.rate.sleep()
+                continue
+            print_flag = True
+
+            (img_front, img_left, img_right, img_front_depth, img_left_depth, img_right_depth,
+             puppet_arm_left, puppet_arm_right, robot_base) = result
+            # print(f"sync success when get_ros_observation")
+            img_front = jpeg_mapping(img_front)
+            img_left = jpeg_mapping(img_left)
+            img_right = jpeg_mapping(img_right)
+
+            qpos = np.concatenate(
+                (np.array(puppet_arm_left.position), np.array(puppet_arm_right.position)), axis=0)
+            qpos = torch.from_numpy(qpos).float().cuda()
+            qpos = qpos.unsqueeze(0)
+
+            obs = {
+                    'qpos': qpos,
+                    'images':
+                        {
+                            "image_front": img_front,
+                            "image_right": img_right,
+                            "image_left": img_left,
+                        },
+                }
+            return obs
+
 
     def step(self, action):
-        state_len = int(len(action) / 2)
-        left_action = action[:state_len]
-        right_action = action[state_len:]
-        self.puppet_bot_left.arm.set_joint_positions(left_action[:6], blocking=False)
-        self.puppet_bot_right.arm.set_joint_positions(right_action[:6], blocking=False)
-        self.set_gripper_pose(left_action[-1], right_action[-1])
-        time.sleep(constants.DT)
+        interp_actions = None
+
+        if ros_config["use_actions_interpolation"]:
+            # print(f"Time {t}, pre {pre_action}, act {action}")
+            interp_actions = interpolate_action(ros_config, self.pre_action, action)
+        else:
+            interp_actions = action[np.newaxis, :]
+
+        # Execute the interpolated actions one by one
+        for act in interp_actions:
+            state_len = int(len(act) / 2)
+            left_action = act[:state_len]
+            right_action = act[state_len:]
+
+            if not ros_config["disable_puppet_arm"]:
+                self.ros_operator.puppet_arm_publish(left_action,
+                                                right_action)  # puppet_arm_publish_continuous_thread
+
+            if ros_config["use_robot_base"]:
+                vel_action = act[14:16]
+                self.ros_operator.robot_base_publish(vel_action)
+            self.rate.sleep()
+
+        self.pre_action = action.copy()
+
+        # get next frame obs
         return dm_env.TimeStep(
             step_type=dm_env.StepType.MID, reward=self.get_reward(), discount=None, observation=self.get_observation()
         )
 
 
-def get_action(master_bot_left, master_bot_right):
-    action = np.zeros(14)  # 6 joint + 1 gripper, for two arms
-    # Arm actions
-    action[:6] = master_bot_left.dxl.joint_states.position[:6]
-    action[7 : 7 + 6] = master_bot_right.dxl.joint_states.position[:6]
-    # Gripper actions
-    action[6] = constants.MASTER_GRIPPER_JOINT_NORMALIZE_FN(master_bot_left.dxl.joint_states.position[6])
-    action[7 + 6] = constants.MASTER_GRIPPER_JOINT_NORMALIZE_FN(master_bot_right.dxl.joint_states.position[6])
-
-    return action
 
 
-def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True) -> RealEnv:
-    return RealEnv(init_node, reset_position=reset_position, setup_robots=setup_robots)
+def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True) -> PiperRealEnv:
+    return PiperRealEnv(init_node, reset_position=reset_position, setup_robots=setup_robots)
