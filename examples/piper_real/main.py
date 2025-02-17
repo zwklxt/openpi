@@ -12,7 +12,7 @@ from examples.piper_real import env as _env
 
 @dataclasses.dataclass
 class Args:
-    host: str = "0.0.0.0"
+    host: str = "10.0.30.110" #H100
     port: int = 8000
 
     action_horizon: int = 25

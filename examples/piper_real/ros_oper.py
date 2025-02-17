@@ -16,7 +16,7 @@ from sensor_msgs.msg import Image, JointState
 from std_msgs.msg import Header
 import cv2
 
-from scripts.agilex_model import create_model
+# from scripts.agilex_model import create_model
 
 
 # ROS operator class
@@ -86,6 +86,7 @@ class RosOperator:
                 right_arm = list(self.puppet_arm_right_deque[-1].position)
             if left_arm is None or right_arm is None:
                 rate.sleep()
+                print("left_arm or right_arm is None")
                 continue
             else:
                 break
@@ -302,7 +303,7 @@ class RosOperator:
         self.robot_base_deque.append(msg)
 
     def init_ros(self):
-        rospy.init_node('joint_state_publisher', anonymous=True)
+        rospy.init_node('joint_state_publisher_pi0_debug', anonymous=True)
         rospy.Subscriber(self.args["img_left_topic"], Image, self.img_left_callback, queue_size=1000, tcp_nodelay=True)
         rospy.Subscriber(self.args["img_right_topic"], Image, self.img_right_callback, queue_size=1000, tcp_nodelay=True)
         rospy.Subscriber(self.args["img_front_topic"], Image, self.img_front_callback, queue_size=1000, tcp_nodelay=True)

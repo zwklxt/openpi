@@ -21,10 +21,13 @@ docker compose -f examples/aloha_real/compose.yml up --build
 Terminal window 1:
 
 ```bash
+# All cmd run in openpi path:
 # Create virtual environment
-uv venv --python 3.10 examples/aloha_real/.venv
-source examples/aloha_real/.venv/bin/activate
-uv pip sync examples/aloha_real/requirements.txt
+uv venv --python 3.11 examples/piper_real/.venv
+source examples/piper_real/.venv/bin/activate
+# generate requirement.txt
+uv pip compile examples/piper_real/requirements.in -o examples/piper_real/requirements.txt --python-version 3.11
+uv pip sync examples/piper_real/requirements.txt
 uv pip install -e packages/openpi-client
 
 # Run the robot

@@ -1,26 +1,49 @@
-# Ignore lint errors because this file is mostly copied from ACT (https://github.com/tonyzhaozh/act).
-# ruff: noqa
-import collections
-import time
+
+
 from typing import Optional, List
 import dm_env
 import numpy as np
 
+#this is a ROS package
 import rospy
 import cv2
 import torch
 
-# from examples.aloha_real import constants
-# from examples.aloha_real import robot_utils
-
 from  examples.piper_real import ros_oper as _ros_oper
 
-# This is the reset position that is used by the standard Aloha runtime.
-DEFAULT_RESET_POSITION = [0, -0.96, 1.16, 0, -0.3, 0]
+#this is  a camera name list for config
+CAMERA_NAMES = ['cam_high', 'cam_right_wrist', 'cam_left_wrist']
 
 ros_config = {
-    "publish_rate": 30,
+    "img_front_topic": "/camera_f/color/image_raw",
+    "img_left_topic": "/camera_l/color/image_raw",
+    "img_right_topic": "/camera_r/color/image_raw",
 
+    "img_front_depth_topic": "/camera_f/depth/image_raw",
+    "img_left_depth_topic": "/camera_l/depth/image_raw",
+    "img_right_depth_topic": "/camera_r/depth/image_raw",
+
+    "puppet_arm_left_topic": "/puppet/joint_left",
+    "puppet_arm_right_topic": "/puppet/joint_right",
+
+    "puppet_arm_left_cmd_topic": "/master/joint_left",
+    "puppet_arm_right_cmd_topic": "/master/joint_right",
+
+    "robot_base_topic": "/odom_raw",
+    "robot_base_cmd_topic": "/cmd_vel",
+    "use_robot_base": False,
+
+    "publish_rate": 30,
+    "ctrl_freq": 25,
+    "state_dim": 14,
+    "chunk_size": 64,
+    "arm_steps_length": [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.2],
+
+    "use_actions_interpolation": True,
+    "use_depth_image": False,
+
+    "disable_puppet_arm": False,
+    "disable_robot_base": False,
 }
 
 # Interpolate the actions to make the robot move smoothly
@@ -51,12 +74,14 @@ class PiperRealEnv:
                                         right_arm_qvel (6),         # absolute joint velocity (rad)
                                         right_gripper_qvel (1)]     # normalized gripper velocity (pos: opening, neg: closing)
                         "images": {"cam_high": (480x640x3),        # h, w, c, dtype='uint8'
-                                   "cam_low": (480x640x3),         # h, w, c, dtype='uint8'
                                    "cam_left_wrist": (480x640x3),  # h, w, c, dtype='uint8'
                                    "cam_right_wrist": (480x640x3)} # h, w, c, dtype='uint8'
     """
 
     def __init__(self, init_node, *, reset_pos:Optional[List[float]] = None, setup_robots: bool = False):
+        if init_node:
+            pass
+            # rospy.init_node("joint_state_publisher", anonymous=True)
         self._reset_pos = reset_pos
         self.ros_operator = _ros_oper.RosOperator(ros_config)
         self.rate = rospy.Rate(ros_config["publish_rate"])
@@ -132,16 +157,16 @@ class PiperRealEnv:
 
             qpos = np.concatenate(
                 (np.array(puppet_arm_left.position), np.array(puppet_arm_right.position)), axis=0)
-            qpos = torch.from_numpy(qpos).float().cuda()
-            qpos = qpos.unsqueeze(0)
+            # qpos = torch.from_numpy(qpos).float().cuda()
+            # qpos = qpos.unsqueeze(0)
 
             obs = {
                     'qpos': qpos,
                     'images':
                         {
-                            "image_front": img_front,
-                            "image_right": img_right,
-                            "image_left": img_left,
+                            "cam_high": img_front,
+                            "cam_right_wrist": img_right,
+                            "cam_left_wrist": img_left,
                         },
                 }
             return obs
@@ -182,4 +207,4 @@ class PiperRealEnv:
 
 
 def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True) -> PiperRealEnv:
-    return PiperRealEnv(init_node, reset_position=reset_position, setup_robots=setup_robots)
+    return PiperRealEnv(init_node, reset_pos=reset_position, setup_robots=setup_robots)

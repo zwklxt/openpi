@@ -1,3 +1,4 @@
+
 from typing import List, Optional  # noqa: UP035
 
 import einops
@@ -20,7 +21,6 @@ class PiperRealEnvironment(_environment.Environment):
         self._env = _real_env.make_real_env(init_node=True, reset_position=reset_position)
         self._render_height = render_height
         self._render_width = render_width
-
         self._ts = None
 
     @override
