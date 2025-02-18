@@ -2,16 +2,14 @@
 """
 #!/usr/bin/python3
 """
-
 import dataclasses
 import logging
+import tyro
 
 from openpi_client import action_chunk_broker
 from openpi_client import websocket_client_policy as _websocket_client_policy
 from openpi_client.runtime import runtime as _runtime
 from openpi_client.runtime.agents import policy_agent as _policy_agent
-import tyro
-
 from examples.piper_real import env as _env
 from examples.piper_real import logger as _logger
 
@@ -21,7 +19,7 @@ class Args:
     host: str = "10.0.30.110" #H100
     port: int = 8000
 
-    action_horizon: int = 25
+    action_horizon: int = 50
 
     num_episodes: int = 1
     max_episode_steps: int = 1000

@@ -23,7 +23,7 @@ class PiperRealEnvironment(_environment.Environment):
         self._render_height = render_height
         self._render_width = render_width
         self._ts = None
-        self.save_obs = True
+        self.save_obs = False
         self.frame_cnt = 0
 
     @override
