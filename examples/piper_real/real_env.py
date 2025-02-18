@@ -9,6 +9,7 @@ import rospy
 import cv2
 import torch
 
+from threading import Thread
 from  examples.piper_real import ros_oper as _ros_oper
 
 #this is  a camera name list for config
@@ -80,14 +81,25 @@ class PiperRealEnv:
 
     def __init__(self, init_node, *, reset_pos:Optional[List[float]] = None, setup_robots: bool = False):
         if init_node:
-            pass
-            # rospy.init_node("joint_state_publisher", anonymous=True)
+            rospy.init_node('joint_state_publisher_pi0_debug', anonymous=True)
+            self.spin_thread = Thread(target=self.spin)
+            self.spin_thread.start()
         self._reset_pos = reset_pos
         self.ros_operator = _ros_oper.RosOperator(ros_config)
         self.rate = rospy.Rate(ros_config["publish_rate"])
         # self.action = None
         self.pre_action = np.zeros(ros_config['state_dim'])
 
+    def spin(self):
+        try:
+            # 保持节点运行，直到有外部中断信号（如Ctrl+C）
+            rospy.spin()
+        except KeyboardInterrupt:
+            # 捕获Ctrl+C中断
+            print(" shutting down")
+        finally:
+            # 不管是否发生异常，都执行清理操作
+            rospy.signal_shutdown("User requested shutdown")
 
     def setup_robots(self):
         pass
@@ -105,7 +117,6 @@ class PiperRealEnv:
             self.ros_operator.puppet_arm_publish_continuous(left0, right0)
             input("Press enter to continue")
             self.ros_operator.puppet_arm_publish_continuous(left1, right1)
-
 
             # Initialize the previous action to be the initial robot state
 
@@ -140,6 +151,7 @@ class PiperRealEnv:
 
         while True and not rospy.is_shutdown():
             result = self.ros_operator.get_frame()
+            
             if not result:
                 if print_flag:
                     print("syn fail when get_ros_observation")
@@ -147,10 +159,12 @@ class PiperRealEnv:
                 self.rate.sleep()
                 continue
             print_flag = True
-
+            print(f"get_ros_observation success") 
+            
             (img_front, img_left, img_right, img_front_depth, img_left_depth, img_right_depth,
              puppet_arm_left, puppet_arm_right, robot_base) = result
             # print(f"sync success when get_ros_observation")
+            
             img_front = jpeg_mapping(img_front)
             img_left = jpeg_mapping(img_left)
             img_right = jpeg_mapping(img_right)
@@ -169,6 +183,7 @@ class PiperRealEnv:
                             "cam_left_wrist": img_left,
                         },
                 }
+            
             return obs
 
 
@@ -188,8 +203,7 @@ class PiperRealEnv:
             right_action = act[state_len:]
 
             if not ros_config["disable_puppet_arm"]:
-                self.ros_operator.puppet_arm_publish(left_action,
-                                                right_action)  # puppet_arm_publish_continuous_thread
+                self.ros_operator.puppet_arm_publish(left_action, right_action)  # puppet_arm_publish_continuous_thread
 
             if ros_config["use_robot_base"]:
                 vel_action = act[14:16]

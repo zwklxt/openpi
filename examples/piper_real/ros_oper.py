@@ -14,6 +14,7 @@ from nav_msgs.msg import Odometry
 from PIL import Image as PImage
 from sensor_msgs.msg import Image, JointState
 from std_msgs.msg import Header
+from threading import Thread
 import cv2
 
 # from scripts.agilex_model import create_model
@@ -22,6 +23,7 @@ import cv2
 # ROS operator class
 class RosOperator:
     def __init__(self, args:dict):
+        #get the robot state info: save in deque
         self.robot_base_deque = None
         self.puppet_arm_right_deque = None
         self.puppet_arm_left_deque = None
@@ -32,16 +34,22 @@ class RosOperator:
         self.img_right_depth_deque = None
         self.img_left_depth_deque = None
         self.bridge = None
+        
+        #publish the robot state info:left and right arm, robot base
         self.puppet_arm_left_publisher = None
         self.puppet_arm_right_publisher = None
         self.robot_base_publisher = None
+        
+        #thread for puppet arm publish control
         self.puppet_arm_publish_thread = None
         self.puppet_arm_publish_lock = None
         self.args = args
+        
         self.init()
         self.init_ros()
 
     def init(self):
+        #init the deque for the robot state info
         self.bridge = CvBridge()
         self.img_left_deque = deque()
         self.img_right_deque = deque()
@@ -52,6 +60,7 @@ class RosOperator:
         self.puppet_arm_left_deque = deque()
         self.puppet_arm_right_deque = deque()
         self.robot_base_deque = deque()
+        #init the lock for puppet arm publish control
         self.puppet_arm_publish_lock = threading.Lock()
         self.puppet_arm_publish_lock.acquire()
 
@@ -64,6 +73,7 @@ class RosOperator:
         self.puppet_arm_left_publisher.publish(joint_state_msg)
         joint_state_msg.position = right
         self.puppet_arm_right_publisher.publish(joint_state_msg)
+        # print("puper_arm_cmd publish success...")
 
     def robot_base_publish(self, vel):
         vel_msg = Twist()
@@ -86,12 +96,13 @@ class RosOperator:
                 right_arm = list(self.puppet_arm_right_deque[-1].position)
             if left_arm is None or right_arm is None:
                 rate.sleep()
-                print("left_arm or right_arm is None")
+                print("left_arm or right_arm is None,wating for puppet_arm data")
                 continue
             else:
                 break
         left_symbol = [1 if left[i] - left_arm[i] > 0 else -1 for i in range(len(left))]
         right_symbol = [1 if right[i] - right_arm[i] > 0 else -1 for i in range(len(right))]
+        
         flag = True
         step = 0
         while flag and not rospy.is_shutdown():
@@ -100,6 +111,7 @@ class RosOperator:
             left_diff = [abs(left[i] - left_arm[i]) for i in range(len(left))]
             right_diff = [abs(right[i] - right_arm[i]) for i in range(len(right))]
             flag = False
+            
             for i in range(len(left)):
                 if left_diff[i] < self.args["arm_steps_length"][i]:
                     left_arm[i] = left[i]
@@ -112,6 +124,7 @@ class RosOperator:
                 else:
                     right_arm[i] += right_symbol[i] * self.args["arm_steps_length"][i]
                     flag = True
+                    
             joint_state_msg = JointState()
             joint_state_msg.header = Header()
             joint_state_msg.header.stamp = rospy.Time.now()  # Set the timestep
@@ -121,7 +134,7 @@ class RosOperator:
             joint_state_msg.position = right_arm
             self.puppet_arm_right_publisher.publish(joint_state_msg)
             step += 1
-            print("puppet_arm_publish_continuous:", step)
+            print("puppet_arm_publish_continuous:[step={0},left_diff={1},right_diff={2}]".format(step, left_diff, right_diff))
             rate.sleep()
 
     def puppet_arm_publish_linear(self, left, right):
@@ -225,10 +238,12 @@ class RosOperator:
         while self.puppet_arm_left_deque[0].header.stamp.to_sec() < frame_time:
             self.puppet_arm_left_deque.popleft()
         puppet_arm_left = self.puppet_arm_left_deque.popleft()
+        # print("pop puppet_arm_left_deque:", puppet_arm_left.position)
 
         while self.puppet_arm_right_deque[0].header.stamp.to_sec() < frame_time:
             self.puppet_arm_right_deque.popleft()
         puppet_arm_right = self.puppet_arm_right_deque.popleft()
+        # print("pop puppet_arm_right_deque:", puppet_arm_right.position)
 
         img_left_depth = None
         if self.args["use_depth_image"]:
@@ -303,7 +318,9 @@ class RosOperator:
         self.robot_base_deque.append(msg)
 
     def init_ros(self):
-        rospy.init_node('joint_state_publisher_pi0_debug', anonymous=True)
+        #create a ros node
+        # rospy.init_node('joint_state_publisher_pi0_debug', anonymous=True)
+        #subscribe the robot state info and image info,then save them in the deque
         rospy.Subscriber(self.args["img_left_topic"], Image, self.img_left_callback, queue_size=1000, tcp_nodelay=True)
         rospy.Subscriber(self.args["img_right_topic"], Image, self.img_right_callback, queue_size=1000, tcp_nodelay=True)
         rospy.Subscriber(self.args["img_front_topic"], Image, self.img_front_callback, queue_size=1000, tcp_nodelay=True)
@@ -320,83 +337,14 @@ class RosOperator:
                          tcp_nodelay=True)
         rospy.Subscriber(self.args["robot_base_topic"], Odometry, self.robot_base_callback, queue_size=1000,
                          tcp_nodelay=True)
+        
+        #init publish the robot state info:left and right arm, robot base
         self.puppet_arm_left_publisher = rospy.Publisher(self.args["puppet_arm_left_cmd_topic"], JointState, queue_size=10)
-        self.puppet_arm_right_publisher = rospy.Publisher(self.args["puppet_arm_right_cmd_topic"], JointState,
-                                                          queue_size=10)
+        self.puppet_arm_right_publisher = rospy.Publisher(self.args["puppet_arm_right_cmd_topic"], JointState,queue_size=10)
         self.robot_base_publisher = rospy.Publisher(self.args["robot_base_cmd_topic"], Twist, queue_size=10)
 
-
-def get_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--max_publish_step', action='store', type=int,
-                        help='Maximum number of action publishing steps', default=10000, required=False)
-    parser.add_argument('--seed', action='store', type=int,
-                        help='Random seed', default=None, required=False)
-
-    parser.add_argument('--img_front_topic', action='store', type=str, help='img_front_topic',
-                        default='/camera_f/color/image_raw', required=False)
-    parser.add_argument('--img_left_topic', action='store', type=str, help='img_left_topic',
-                        default='/camera_l/color/image_raw', required=False)
-    parser.add_argument('--img_right_topic', action='store', type=str, help='img_right_topic',
-                        default='/camera_r/color/image_raw', required=False)
-
-    parser.add_argument('--img_front_depth_topic', action='store', type=str, help='img_front_depth_topic',
-                        default='/camera_f/depth/image_raw', required=False)
-    parser.add_argument('--img_left_depth_topic', action='store', type=str, help='img_left_depth_topic',
-                        default='/camera_l/depth/image_raw', required=False)
-    parser.add_argument('--img_right_depth_topic', action='store', type=str, help='img_right_depth_topic',
-                        default='/camera_r/depth/image_raw', required=False)
-
-    parser.add_argument('--puppet_arm_left_cmd_topic', action='store', type=str, help='puppet_arm_left_cmd_topic',
-                        default='/master/joint_left', required=False)
-    parser.add_argument('--puppet_arm_right_cmd_topic', action='store', type=str, help='puppet_arm_right_cmd_topic',
-                        default='/master/joint_right', required=False)
-    parser.add_argument('--puppet_arm_left_topic', action='store', type=str, help='puppet_arm_left_topic',
-                        default='/puppet/joint_left', required=False)
-    parser.add_argument('--puppet_arm_right_topic', action='store', type=str, help='puppet_arm_right_topic',
-                        default='/puppet/joint_right', required=False)
-
-    parser.add_argument('--robot_base_topic', action='store', type=str, help='robot_base_topic',
-                        default='/odom_raw', required=False)
-    parser.add_argument('--robot_base_cmd_topic', action='store', type=str, help='robot_base_topic',
-                        default='/cmd_vel', required=False)
-    parser.add_argument('--use_robot_base', action='store_true',
-                        help='Whether to use the robot base to move around',
-                        default=False, required=False)
-    parser.add_argument('--publish_rate', action='store', type=int,
-                        help='The rate at which to publish the actions',
-                        default=30, required=False)
-    parser.add_argument('--ctrl_freq', action='store', type=int,
-                        help='The control frequency of the robot',
-                        default=25, required=False)
-
-    parser.add_argument('--chunk_size', action='store', type=int,
-                        help='Action chunk size',
-                        default=64, required=False)
-    parser.add_argument('--arm_steps_length', action='store', type=float,
-                        help='The maximum change allowed for each joint per timestep',
-                        default=[0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.2], required=False)
-
-    parser.add_argument('--use_actions_interpolation', action='store_true',
-                        help='Whether to interpolate the actions if the difference is too large',
-                        default=False, required=False)
-    parser.add_argument('--use_depth_image', action='store_true',
-                        help='Whether to use depth images',
-                        default=False, required=False)
-
-    parser.add_argument('--disable_puppet_arm', action='store_true',
-                        help='Whether to disable the puppet arm. This is useful for safely debugging', default=False)
-
-    parser.add_argument('--config_path', type=str, default="configs/base.yaml",
-                        help='Path to the config file')
-    # parser.add_argument('--cfg_scale', type=float, default=2.0,
-    #                     help='the scaling factor used to modify the magnitude of the control features during denoising')
-    parser.add_argument('--pretrained_model_name_or_path', type=str, required=True,
-                        help='Name or path to the pretrained model')
-
-    parser.add_argument('--lang_embeddings_path', type=str, required=True,
-                        help='Path to the pre-encoded language instruction embeddings')
-
-    args = parser.parse_args()
-    return args
+        
+        
+    
+        
 

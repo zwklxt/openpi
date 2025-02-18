@@ -16,4 +16,5 @@ rospkg
 tyro
 websockets
 torch
+pandas
 

@@ -169,5 +169,13 @@ cython_debug/
 
 .DS_Store
 
-third_party/aloha
-third_party/libero
+third_party/aloha/
+third_party/libero/
+
+
+##ignore all log files
+*.log
+example/piper_real/logs/*
+
+#ignore vscode settings
+.vscode/

@@ -1,3 +1,8 @@
+# -- coding: UTF-8
+"""
+#!/usr/bin/python3
+"""
+
 import dataclasses
 import logging
 
@@ -8,6 +13,7 @@ from openpi_client.runtime.agents import policy_agent as _policy_agent
 import tyro
 
 from examples.piper_real import env as _env
+from examples.piper_real import logger as _logger
 
 
 @dataclasses.dataclass
@@ -19,6 +25,8 @@ class Args:
 
     num_episodes: int = 1
     max_episode_steps: int = 1000
+    
+    save_log: bool = False
 
 
 def main(args: Args) -> None:
@@ -27,8 +35,13 @@ def main(args: Args) -> None:
         port=args.port,
     )
     logging.info(f"Server metadata: {ws_client_policy.get_server_metadata()}")
-
     metadata = ws_client_policy.get_server_metadata()
+    
+    if args.save_log:
+        input_img_logger = _logger.InputImgLogger()
+        input_joint_state_logger = _logger.InputJointStateLogger()
+        output_joint_state_logger = _logger.OutputJointStateLogger()
+    
     runtime = _runtime.Runtime(
         environment=_env.PiperRealEnvironment(reset_position=metadata.get("reset_pose")),
         agent=_policy_agent.PolicyAgent(

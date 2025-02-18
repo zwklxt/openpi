@@ -7,6 +7,7 @@ from openpi_client.runtime import environment as _environment
 from typing_extensions import override
 
 from examples.piper_real import real_env as _real_env
+from examples.piper_real.logger import ModelInputObservationSaver as _obs_saver
 
 
 class PiperRealEnvironment(_environment.Environment):
@@ -22,6 +23,8 @@ class PiperRealEnvironment(_environment.Environment):
         self._render_height = render_height
         self._render_width = render_width
         self._ts = None
+        self.save_obs = True
+        self.frame_cnt = 0
 
     @override
     def reset(self) -> None:
@@ -37,6 +40,7 @@ class PiperRealEnvironment(_environment.Environment):
             raise RuntimeError("Timestep is not set. Call reset() first.")
 
         obs = self._ts.observation
+        
         for k in list(obs["images"].keys()):
             if "_depth" in k:
                 del obs["images"][k]
@@ -47,6 +51,14 @@ class PiperRealEnvironment(_environment.Environment):
             )
             obs["images"][cam_name] = einops.rearrange(img, "h w c -> c h w")
 
+        # 保存观察结果
+        if self.save_obs:
+            self.frame_cnt = self.frame_cnt+1
+            saver = _obs_saver()
+            saver.save_state_to_csv(obs["qpos"])
+            saver.save_images_to_folder(obs["images"],frame_id=self.frame_cnt)
+        
+        
         return {
             "state": obs["qpos"],
             "images": obs["images"],
@@ -54,4 +66,10 @@ class PiperRealEnvironment(_environment.Environment):
 
     @override
     def apply_action(self, action: dict) -> None:
+        
         self._ts = self._env.step(action["actions"])
+
+
+
+
+
