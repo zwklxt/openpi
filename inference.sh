@@ -13,10 +13,10 @@ CUDA_VISIBLE_DEVICES=5 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.dir=checkpoints/pi0-piper-pick-bottle/pi0-base-pick-bottle/19999
 
 #piper-180
-CUDA_VISIBLE_DEVICES=5 uv run scripts/serve_policy.py policy:checkpoint \
+CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0-piper-pick-bottle-180 \
     --policy.dir=/data01/wenkai.zhang/pi0/checkpoint/pi0-piper-pick-bottle-180/pi0-base-pick-bottle/10000 \
-    --args.port 8001
+
 
 #2. on local environment: eg. agx
 # --args.host STR        H100 (default: 10.0.30.110)     

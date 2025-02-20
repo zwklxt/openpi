@@ -112,7 +112,8 @@ class PiperOutputs(transforms.DataTransformFn):
 def _joint_flip_mask() -> np.ndarray:
     """Used to convert between piper and pi joint angles."""
     return np.array([1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1])
-
+    #@zwk
+    # return np.array([1, -1, -1, 1, -1, 1, 1, 1, -1, -1, 1, -1, 1, 1])
 
 def _normalize(x, min_val, max_val):
     return (x - min_val) / (max_val - min_val)
@@ -130,6 +131,8 @@ def _gripper_to_angular(value):
     # These values are coming from the piper code:
     # PUPPET_GRIPPER_POSITION_OPEN, PUPPET_GRIPPER_POSITION_CLOSED
     value = _unnormalize(value, min_val=0.01844, max_val=0.05800)
+    #@zwk
+    # value = _unnormalize(value, min_val=0.0, max_val=0.07)
 
     # This is the inverse of the angular to linear transformation inside the Interbotix code.
     def linear_to_radian(linear_position, arm_length, horn_radius):

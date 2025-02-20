@@ -378,9 +378,9 @@ class TrainConfig:
     data: DataConfigFactory = dataclasses.field(default_factory=FakeDataConfig)
 
     # Base directory for config assets (e.g., norm stats).
-    assets_base_dir: str = "./assets"
+    assets_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180/assets"
     # Base directory for checkpoints.
-    checkpoint_base_dir: str = "./checkpoints"
+    checkpoint_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180/checkpoints"
 
     # Random seed that will be used by random generators during training.
     seed: int = 42
@@ -672,6 +672,7 @@ _CONFIGS = [
                                 "cam_left_wrist": "observation.images.cam_left_wrist",
                                 "cam_right_wrist": "observation.images.cam_right_wrist",
                             },
+                            "state": "observation.state",
                             "actions": "action",
                         }
                     )
@@ -684,7 +685,7 @@ _CONFIGS = [
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
-        num_train_steps=20_000,
+        num_train_steps=60_000,
         # add base config
         batch_size=32,
         save_interval=2000,

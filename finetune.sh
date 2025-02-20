@@ -64,12 +64,12 @@ uv run scripts/train.py pi0-fast-piper-pick-bottle \
 
 pi0-piper-pick-bottle-180
 #example for H100:pi0-base
-CUDA_VISIBLE_DEVICES=2,4 \
+CUDA_VISIBLE_DEVICES=0,4,5,6 \
 XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 \
 uv run scripts/train.py pi0-piper-pick-bottle-180 \
     --exp-name=pi0-piper-pick-bottle-180 \
     --save_interval=2000 \
     --batch_size=32 \
-    --num_workers=2 \
+    --num_workers=4 \
     --overwrite \
     --wandb_enabled

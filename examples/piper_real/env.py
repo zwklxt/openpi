@@ -50,6 +50,8 @@ class PiperRealEnvironment(_environment.Environment):
                 image_tools.resize_with_pad(obs["images"][cam_name], self._render_height, self._render_width)
             )
             obs["images"][cam_name] = einops.rearrange(img, "h w c -> c h w")
+            
+        #normalization for qpos puppet gript: TODO
 
         # 保存观察结果
         if self.save_obs:
@@ -66,6 +68,8 @@ class PiperRealEnvironment(_environment.Environment):
 
     @override
     def apply_action(self, action: dict) -> None:
+        #TODO: action unnormalization @zwk
+        
         
         self._ts = self._env.step(action["actions"])
 
