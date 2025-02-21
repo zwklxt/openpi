@@ -663,7 +663,48 @@ _CONFIGS = [
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
             ),
-            default_prompt="pick up the bottle of water with hand and place it on the notebook",
+            default_prompt="pick up the bottle of water with right hand and place it on the blue notebook",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="data/piper_lerobot/piper_180",
+            ),
+            # adapt_to_pi=False,
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        # add base config
+        batch_size=32,
+        save_interval=2000,
+        overwrite=True,
+        # wandb_enabled=False,
+    ),
+
+    TrainConfig(
+        name="pi0-piper-pick-bottle-90",  # use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/pick_up_bottle-90",  # use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="pick up the bottle of water with hand and place it on the blue notebook",
             repack_transforms=_transforms.Group(
                 inputs=[
                     _transforms.RepackTransform(

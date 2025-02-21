@@ -17,6 +17,16 @@ CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0-piper-pick-bottle-180 \
     --policy.dir=/data01/wenkai.zhang/experiment/pi0-base-180-scale/checkpoints/pi0-piper-pick-bottle-180/pi0-piper-pick-bottle-180/22000
 
+#piper-180-no-adapt-pi0
+CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
+    --policy.config=pi0-piper-pick-bottle-180 \
+    --policy.dir=/data01/wenkai.zhang/experiment/pi0-base-180-adapt-pi/checkpoints/pi0-piper-pick-bottle-180/pi0-piper-pick-bottle-180/24000
+
+#piper-90
+CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
+    --policy.config=pi0-piper-pick-bottle-90 \
+    --policy.dir=/data01/wenkai.zhang/checkpoint_pi0_90/pi0-piper-grab_up_move_down_right/pi0-base-grab_up_move_down_right/55000
+
 
 #2. on local environment: eg. agx
 # --args.host STR        H100 (default: 10.0.30.110)     
