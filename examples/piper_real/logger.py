@@ -11,7 +11,7 @@ import pandas as pd
 from cv_bridge import CvBridge
 from threading import Thread
 import numpy as np
-from PIL import Image
+from PIL import Image as PImage
 
 
 
@@ -210,13 +210,28 @@ class ModelInputObservationSaver:
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
     
-    def save_state_to_csv(self, state, filename='state.csv'):
+    def save_input_state_to_csv(self, state, filename='state.csv'):
         # 将状态（state）保存为CSV文件
         filepath = os.path.join(self.save_dir, filename)
         header=['left_joint0', 'left_joint1', 'left_joint2', 'left_joint3', 'left_joint4', 'left_joint5', 'left_gripper',
                                                   'right_joint0', 'right_joint1', 'right_joint2', 'right_joint3', 'right_joint4', 'right_joint5', 'right_gripper']
         
         df = pd.DataFrame([state], columns=header)
+        
+        if os.path.exists(filepath):
+            # 如果文件已存在，则以追加模式添加新行而不添加header
+            df.to_csv(filepath, mode='a', index=False, header=False)
+        else:
+            # 如果文件不存在，则创建新文件并写入header和新行
+            df.to_csv(filepath, index=False, header=True)
+    
+    def save_output_action_to_csv(self, action, filename='action.csv'):
+        # 将动作（action）保存为CSV文件
+        filepath = os.path.join(self.save_dir, filename)
+        header=['left_joint0', 'left_joint1', 'left_joint2', 'left_joint3', 'left_joint4', 'left_joint5', 'left_gripper',
+                                                  'right_joint0', 'right_joint1', 'right_joint2', 'right_joint3', 'right_joint4', 'right_joint5', 'right_gripper']
+        
+        df = pd.DataFrame([action], columns=header)
         
         if os.path.exists(filepath):
             # 如果文件已存在，则以追加模式添加新行而不添加header
@@ -234,7 +249,7 @@ class ModelInputObservationSaver:
         for img_name, img_data in images.items():
             # 假定img_data形状为(c, h, w)，需要转换为(h, w, c)以供PIL使用
             img_array = np.transpose(img_data, (1, 2, 0))
-            img = Image.fromarray(img_array.astype(np.uint8))
+            img = PImage.fromarray(img_array.astype(np.uint8))
             
             #update image name by frame_id
             img_name = img_name + '_' + str(frame_id)

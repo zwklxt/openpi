@@ -5,6 +5,7 @@
 import dataclasses
 import logging
 import tyro
+import rospy
 
 from openpi_client import action_chunk_broker
 from openpi_client import websocket_client_policy as _websocket_client_policy
@@ -36,7 +37,8 @@ def main(args: Args) -> None:
     metadata = ws_client_policy.get_server_metadata()
     
     if args.save_log:
-        input_img_logger = _logger.InputImgLogger()
+        # rospy.init_node('data_logger_node', anonymous=True)
+        # input_img_logger = _logger.InputImgLogger()
         input_joint_state_logger = _logger.InputJointStateLogger()
         output_joint_state_logger = _logger.OutputJointStateLogger()
     
@@ -58,5 +60,6 @@ def main(args: Args) -> None:
 
 
 if __name__ == "__main__":
+    
     logging.basicConfig(level=logging.INFO, force=True)
     tyro.cli(main)

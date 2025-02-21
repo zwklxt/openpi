@@ -23,8 +23,10 @@ class PiperRealEnvironment(_environment.Environment):
         self._render_height = render_height
         self._render_width = render_width
         self._ts = None
-        self.save_obs = False
+        self.save_obs = True
         self.frame_cnt = 0
+        if self.save_obs:
+            self.saver = _obs_saver()
 
     @override
     def reset(self) -> None:
@@ -54,9 +56,8 @@ class PiperRealEnvironment(_environment.Environment):
         # 保存观察结果
         if self.save_obs:
             self.frame_cnt = self.frame_cnt+1
-            saver = _obs_saver()
-            saver.save_state_to_csv(obs["qpos"])
-            saver.save_images_to_folder(obs["images"],frame_id=self.frame_cnt)
+            self.saver.save_input_state_to_csv(obs["qpos"])
+            self.saver.save_images_to_folder(obs["images"],frame_id=self.frame_cnt)
         
         
         return {
@@ -66,7 +67,8 @@ class PiperRealEnvironment(_environment.Environment):
 
     @override
     def apply_action(self, action: dict) -> None:
-        
+        if self.save_obs:
+            self.saver.save_output_action_to_csv(action["actions"])
         self._ts = self._env.step(action["actions"])
 
 

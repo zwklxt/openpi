@@ -105,6 +105,9 @@ class RosOperator:
         
         flag = True
         step = 0
+        
+        # puppet_arm_file = open("/home/agilex/wenkai.zhang/Pi0/Pi0/openpi/example/piper_real/puppet_arm_data.csv", "w")
+        
         while flag and not rospy.is_shutdown():
             if self.puppet_arm_publish_lock.acquire(False):
                 return
@@ -134,7 +137,12 @@ class RosOperator:
             joint_state_msg.position = right_arm
             self.puppet_arm_right_publisher.publish(joint_state_msg)
             step += 1
-            print("puppet_arm_publish_continuous:[step={0},left_diff={1},right_diff={2}]".format(step, left_diff, right_diff))
+            print("puppet_arm_publish_continuous:[step={0},left_arm={1},right_arm={2}]".format(step, left_arm, right_arm))
+            #存储left_arm和right_arm的数据，以追加的方式 到csv文件
+            # with open(puppet_arm_file, "a") as f:
+            #     f.write("{0},{1},{2}\n".format(step, left_arm, right_arm))
+            
+            
             rate.sleep()
 
     def puppet_arm_publish_linear(self, left, right):
