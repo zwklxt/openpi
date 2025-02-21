@@ -378,9 +378,9 @@ class TrainConfig:
     data: DataConfigFactory = dataclasses.field(default_factory=FakeDataConfig)
 
     # Base directory for config assets (e.g., norm stats).
-    assets_base_dir: str = "./assets"
+    assets_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/assets"
     # Base directory for checkpoints.
-    checkpoint_base_dir: str = "./checkpoints"
+    checkpoint_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/checkpoints"
 
     # Random seed that will be used by random generators during training.
     seed: int = 42
@@ -643,10 +643,52 @@ _CONFIGS = [
                 # data_dir="data/piper_lerobot/pick-up-the-bottle",
                 data_dir="data/piper_lerobot/grab_up_move_down",
             ),
+            adapt_to_pi=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
         #add base config
+        batch_size=32,
+        save_interval=2000,
+        overwrite=True,
+        # wandb_enabled=False,
+    ),
+
+    TrainConfig(
+        name="pi0-piper-pick-bottle-180",  # use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/pick_up_bottle-180",  # use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="pick up the bottle of water with hand and place it on the notebook",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="data/piper_lerobot/piper_180",
+            ),
+            # adapt_to_pi=False,
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        # add base config
         batch_size=32,
         save_interval=2000,
         overwrite=True,
