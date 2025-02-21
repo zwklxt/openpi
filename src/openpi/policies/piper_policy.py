@@ -130,21 +130,27 @@ def _gripper_to_angular(value):
     #
     # These values are coming from the piper code:
     # PUPPET_GRIPPER_POSITION_OPEN, PUPPET_GRIPPER_POSITION_CLOSED
-    value = _unnormalize(value, min_val=0.01844, max_val=0.05800)
-    #@zwk
+    # value = _unnormalize(value, min_val=0.01844, max_val=0.05800)
+    #@zwk for piper gripper
     # value = _unnormalize(value, min_val=0.0, max_val=0.07)
 
     # This is the inverse of the angular to linear transformation inside the Interbotix code.
     def linear_to_radian(linear_position, arm_length, horn_radius):
         value = (horn_radius**2 + linear_position**2 - arm_length**2) / (2 * horn_radius * linear_position)
-        return np.arcsin(np.clip(value, -1.0, 1.0))
+        # return np.arcsin(np.clip(value, -1.0, 1.0))
+        return np.arccos(np.clip(value, -1.0, 1.0))
 
     # The constants are taken from the Interbotix code.
-    value = linear_to_radian(value, arm_length=0.036, horn_radius=0.022)
+    # value = linear_to_radian(value, arm_length=0.036, horn_radius=0.022)
+    value = np.clip(value/2.0, 0.00001, 0.035)
+    value = linear_to_radian(value, arm_length=0.018, horn_radius=0.018) #@zwk for piper gripper
 
     # Normalize to [0, 1].
     # The values 0.4 and 1.5 were measured on an actual Trossen robot.
-    return _normalize(value, min_val=0.4, max_val=1.5)
+    # return _normalize(value, min_val=0.4, max_val=1.5)
+    return _normalize(value, min_val=0.00001, max_val=1.543)
+
+
 
 
 def _gripper_from_angular(value):
@@ -152,17 +158,18 @@ def _gripper_from_angular(value):
     # Note that the units are still angular but the range is different.
 
     # The values 0.4 and 1.5 were measured on an actual Trossen robot.
-    value = _unnormalize(value, min_val=0.4, max_val=1.5)
+    value = _unnormalize(value, min_val=0.00001, max_val=1.543)
 
     # These values are coming from the piper code:
     # PUPPET_GRIPPER_JOINT_OPEN, PUPPET_GRIPPER_JOINT_CLOSE
-    return _normalize(value, min_val=-0.6213, max_val=1.4910)
+    # return _normalize(value, min_val=-0.6213, max_val=1.4910)
+    return value
 
 
 def _gripper_from_angular_inv(value):
     # Directly inverts the gripper_from_angular function.
-    value = _unnormalize(value, min_val=-0.6213, max_val=1.4910)
-    return _normalize(value, min_val=0.4, max_val=1.5)
+    # value = _unnormalize(value, min_val=-0.6213, max_val=1.4910)
+    return _normalize(value, min_val=0.00001, max_val=1.543)
 
 
 def _decode_piper(data: dict, *, adapt_to_pi: bool = False) -> dict:

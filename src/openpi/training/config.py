@@ -378,9 +378,9 @@ class TrainConfig:
     data: DataConfigFactory = dataclasses.field(default_factory=FakeDataConfig)
 
     # Base directory for config assets (e.g., norm stats).
-    assets_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180/assets"
+    assets_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/assets"
     # Base directory for checkpoints.
-    checkpoint_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180/checkpoints"
+    checkpoint_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/checkpoints"
 
     # Random seed that will be used by random generators during training.
     seed: int = 42
@@ -643,6 +643,7 @@ _CONFIGS = [
                 # data_dir="data/piper_lerobot/pick-up-the-bottle",
                 data_dir="data/piper_lerobot/grab_up_move_down",
             ),
+            adapt_to_pi=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
@@ -683,6 +684,7 @@ _CONFIGS = [
                 # data_dir="data/piper_lerobot/pick-up-the-bottle",
                 data_dir="data/piper_lerobot/piper_180",
             ),
+            # adapt_to_pi=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=60_000,

@@ -70,6 +70,6 @@ uv run scripts/train.py pi0-piper-pick-bottle-180 \
     --exp-name=pi0-piper-pick-bottle-180 \
     --save_interval=2000 \
     --batch_size=32 \
-    --num_workers=4 \
+    --num_workers=2 \
     --overwrite \
     --wandb_enabled

@@ -15,7 +15,7 @@ CUDA_VISIBLE_DEVICES=5 uv run scripts/serve_policy.py policy:checkpoint \
 #piper-180
 CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0-piper-pick-bottle-180 \
-    --policy.dir=/data01/wenkai.zhang/pi0/checkpoint/pi0-piper-pick-bottle-180/pi0-base-pick-bottle/10000 \
+    --policy.dir=/data01/wenkai.zhang/experiment/pi0-base-180-scale/checkpoints/pi0-piper-pick-bottle-180/pi0-piper-pick-bottle-180/22000
 
 
 #2. on local environment: eg. agx
