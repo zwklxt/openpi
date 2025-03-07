@@ -378,9 +378,9 @@ class TrainConfig:
     data: DataConfigFactory = dataclasses.field(default_factory=FakeDataConfig)
 
     # Base directory for config assets (e.g., norm stats).
-    assets_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/assets"
+    assets_base_dir: str = "./assets"
     # Base directory for checkpoints.
-    checkpoint_base_dir: str = "/data01/wenkai.zhang/experiment/pi0-base-180-scale/checkpoints"
+    checkpoint_base_dir: str = "./checkpoints"
 
     # Random seed that will be used by random generators during training.
     seed: int = 42
@@ -612,12 +612,12 @@ _CONFIGS = [
 
 
     # This config is used to test the piper model training on the piper dataset
-    # @zwk
+    # @zwk:pi0-base model,task = pick up the bottle env=piper
     TrainConfig(
-        name="pi0-piper-pick-bottle", #use pi0-base model,task = pick up the bottle env=piper
+        name="pi0-piper-pick-bottle-random-fixed-placement", #use pi0-base model,task = pick up the bottle env=piper
         model=pi0.Pi0Config(),
         data=LeRobotPiperDataConfig(
-            repo_id="amigos-robot/grab_up_move_down",  #use for hugingface hub
+            repo_id="amigos-robot/pi0-piper-pick-bottle-random-fixed-placement",  #use for hugingface hub
             assets=AssetsConfig(
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
@@ -641,19 +641,15 @@ _CONFIGS = [
             base_config=DataConfig(
                 local_files_only=True,  # Set to True for local-only datasets.
                 # data_dir="data/piper_lerobot/pick-up-the-bottle",
-                data_dir="data/piper_lerobot/grab_up_move_down",
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/pick-up-bottle-random-fixed-100/",
             ),
-            adapt_to_pi=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
-        num_train_steps=20_000,
-        #add base config
-        batch_size=32,
-        save_interval=2000,
-        overwrite=True,
+        num_train_steps=24_000,
         # wandb_enabled=False,
     ),
 
+    #zwk:pi0-base-lora
     TrainConfig(
         name="pi0-piper-pick-bottle-180",  # use pi0-base model,task = pick up the bottle env=piper
         model=pi0.Pi0Config(),
@@ -695,6 +691,7 @@ _CONFIGS = [
         # wandb_enabled=False,
     ),
 
+    #@zwk:pi0-fast
     TrainConfig(
         name="pi0-piper-pick-bottle-90",  # use pi0-base model,task = pick up the bottle env=piper
         model=pi0.Pi0Config(),
