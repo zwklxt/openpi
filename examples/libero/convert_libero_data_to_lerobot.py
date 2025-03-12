@@ -78,7 +78,7 @@ def main(data_dir: str, *, push_to_hub: bool = False):
     for raw_dataset_name in RAW_DATASET_NAMES:
         raw_dataset = tfds.load(raw_dataset_name, data_dir=data_dir, split="train")
         for episode in raw_dataset:
-            for step in episode["steps"].as_numpy_iterator():
+            for  step in episode["steps"].as_numpy_iterator():
                 dataset.add_frame(
                     {
                         "image": step["observation"]["image"],

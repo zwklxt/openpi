@@ -622,7 +622,7 @@ _CONFIGS = [
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
             ),
-            default_prompt="use left hand to pick up the bottle and put it on the blue book",
+            default_prompt="use hand to pick up the bottle and put it on the book",
             repack_transforms=_transforms.Group(
                 inputs=[
                     _transforms.RepackTransform(
@@ -649,7 +649,161 @@ _CONFIGS = [
         # wandb_enabled=False,
     ),
 
+    TrainConfig(
+        name="pi0-piper-cleaning-the-ball", #use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/cleaning_the_ball_517mm",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="use your hand cleaning the ball",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/cleaning_the_ball_517mm/",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=24_000,
+        # wandb_enabled=False,
+    ),
+    
+        TrainConfig(
+        name="pi0-piper-cleaning-the-ball-qpos", #use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/cleaning_the_ball_517mm_qpos",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="use your hand cleaning the ball",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/cleaning_the_ball_517mm_qpos/",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=24_000,
+        # wandb_enabled=False,
+    ),
+    
+    
     #zwk:pi0-base-lora
+    TrainConfig(
+        name="pi0-piper-pick-bottle-random-fixed-placement-lora",  # use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/pi0-piper-pick-bottle-random-fixed-placement",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="use hand to pick up the bottle and put it on the book",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/pick-up-bottle-random-fixed-100/",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=40_000,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        ema_decay=None,
+    ),
+    
+    TrainConfig(
+        name="pi0-piper-cleaning-the-ball-lora", #use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/cleaning_the_ball_517mm",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="use your hand cleaning the ball",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/cleaning_the_ball_517mm/",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=24_000,
+        # wandb_enabled=False,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        ema_decay=None,
+    ),
+    
+    
+    
     TrainConfig(
         name="pi0-piper-pick-bottle-180",  # use pi0-base model,task = pick up the bottle env=piper
         model=pi0.Pi0Config(),

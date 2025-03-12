@@ -29,6 +29,9 @@ from pathlib import Path
 import shutil
 from typing import Literal
 
+import sys
+# sys.path.insert(0, '/HostData/wenkai.zhang/repo/openpi/third_party/lerobot')
+
 import h5py
 from lerobot.common.datasets.lerobot_dataset import LEROBOT_HOME
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
@@ -168,6 +171,7 @@ def has_effort(hdf5_files: list[Path]) -> bool:
 
 def load_raw_images_per_camera(ep: h5py.File, cameras: list[str]) -> dict[str, np.ndarray]:
     imgs_per_cam = {}
+    camera_invalid = False
     for camera in cameras:
         uncompressed = ep[f"/observations/images/{camera}"].ndim == 4
 
@@ -181,19 +185,37 @@ def load_raw_images_per_camera(ep: h5py.File, cameras: list[str]) -> dict[str, n
             imgs_array = []
             for data in ep[f"/observations/images/{camera}"]:
                 data = np.frombuffer(data, np.uint8)
-                imgs_array.append(cv2.imdecode(data, 1))
+                #这里判断下，data的值是否为空
+                if data.size == 0:
+                    camera_invalid = True
+                    print(f"Warning:eposide:{ep}, Empty data for camera {camera}. Skipping this frame.")
+                    imgs_array.append(np.zeros((480, 640, 3), dtype=np.uint8))
+                else:
+                    imgs_array.append(cv2.imdecode(data, 1))
             imgs_array = np.array(imgs_array)
-
+            
         imgs_per_cam[camera] = imgs_array
-    return imgs_per_cam
+        
+    return imgs_per_cam,camera_invalid
 
 
 def load_raw_episode_data(
     ep_path: Path,
 ) -> tuple[dict[str, np.ndarray], torch.Tensor, torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
     with h5py.File(ep_path, "r") as ep:
+        invalid = False
+        
+        max_value= np.max(ep["/observations/qpos"][:])
+        min_value = np.min(ep["/observations/qpos"][:])
+        print(f"max_value: {max_value}, ep_path: {str(ep_path)}")
+        
+        if max_value > 3.14 or min_value < -3.14:
+            invalid = True
+
         state = torch.from_numpy(ep["/observations/qpos"][:])
         action = torch.from_numpy(ep["/action"][:])
+        # action = torch.from_numpy(ep["/observations/qpos"][:])
+
 
         velocity = None
         if "/observations/qvel" in ep:
@@ -203,7 +225,7 @@ def load_raw_episode_data(
         if "/observations/effort" in ep:
             effort = torch.from_numpy(ep["/observations/effort"][:])
 
-        imgs_per_cam = load_raw_images_per_camera(
+        imgs_per_cam,camera_invalid = load_raw_images_per_camera(
             ep,
             [
                 "cam_high",
@@ -212,8 +234,10 @@ def load_raw_episode_data(
                 "cam_right_wrist",
             ],
         )
+    
+    invalid = True if invalid or camera_invalid else False
 
-    return imgs_per_cam, state, action, velocity, effort
+    return imgs_per_cam, state, action, velocity, effort, invalid 
 
 
 def populate_dataset(
@@ -227,8 +251,13 @@ def populate_dataset(
 
     for ep_idx in tqdm.tqdm(episodes):
         ep_path = hdf5_files[ep_idx]
-
-        imgs_per_cam, state, action, velocity, effort = load_raw_episode_data(ep_path)
+        
+        imgs_per_cam, state, action, velocity, effort, invalid= load_raw_episode_data(ep_path)
+        
+        if invalid:
+            print(f"Warning:eposide:{ep_path}, Invalid data. Skipping this episode.")
+            continue
+        
         num_frames = state.shape[0]
 
         for i in range(num_frames):
@@ -239,7 +268,7 @@ def populate_dataset(
 
             for camera, img_array in imgs_per_cam.items():
                 frame[f"observation.images.{camera}"] = img_array[i]
-
+                
             if velocity is not None:
                 frame["observation.velocity"] = velocity[i]
             if effort is not None:
@@ -271,12 +300,15 @@ def port_aloha(
     if (LEROBOT_HOME / repo_id).exists():
         shutil.rmtree(LEROBOT_HOME / repo_id)
 
+    print("raw_dir", raw_dir)
     if not raw_dir.exists():
         if raw_repo_id is None:
             raise ValueError("raw_repo_id must be provided if raw_dir does not exist")
         download_raw(raw_dir, repo_id=raw_repo_id)
 
-    hdf5_files = sorted(raw_dir.glob("episode_*.hdf5"))
+    hdf5_files = sorted(raw_dir.glob("episode*.hdf5"))
+    # print(f"Found {len(hdf5_files)} episodes")
+    # print(hdf5_files)
 
     dataset = create_empty_dataset(
         repo_id,
