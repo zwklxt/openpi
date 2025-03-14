@@ -93,6 +93,10 @@ class DataConfig:
 
     # If true, will disable syncing the dataset from the Hugging Face Hub. Allows training on local-only datasets.
     local_files_only: bool = True #@zwk local_files_only 默认设置为True,用本地的数据训练
+    
+    # If you want to use a subset of the episodes in the dataset, provide a list of episode indices.
+    # If None, all episodes will be used.
+    episodes: list[int] | None = None
 
 
 class GroupFactory(Protocol):
@@ -642,6 +646,44 @@ _CONFIGS = [
                 local_files_only=True,  # Set to True for local-only datasets.
                 # data_dir="data/piper_lerobot/pick-up-the-bottle",
                 data_dir="/HostData/wenkai.zhang/data/lerobot-format/pick-up-bottle-random-fixed-100/",
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=24_000,
+        # wandb_enabled=False,
+    ),
+
+    TrainConfig(
+        name="pi0-piper-agx-4000-multi-task", #use pi0-base model,task = pick up the bottle env=piper
+        model=pi0.Pi0Config(),
+        data=LeRobotPiperDataConfig(
+            repo_id="amigos-robot/agx-4000-multi-task",  #use for hugingface hub
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="do some tasks",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+            base_config=DataConfig(
+                local_files_only=True,  # Set to True for local-only datasets.
+                # data_dir="data/piper_lerobot/pick-up-the-bottle",
+                # prompt_from_task=True,
+                # episodes=list(range(50)),
+                data_dir="/HostData/wenkai.zhang/data/lerobot-format/agx-4000-multi-task/",
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),

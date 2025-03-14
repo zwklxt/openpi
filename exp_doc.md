@@ -18,20 +18,20 @@ CUDA_VISIBLE_DEVICES=4 uv run scripts/compute_norm_stats.py --config-name pi0-pi
 #3. train
 pi0_piper_pick-bottle-random-fixed-placement-lora
 
-CUDA_VISIBLE_DEVICES=2,3\
+CUDA_VISIBLE_DEVICES=0,1 \
 XLA_PYTHON_CLIENT_PREALLOCATE=false \
 uv run scripts/train.py pi0-piper-pick-bottle-random-fixed-placement-lora \
     --name=pi0-piper-pick-bottle-random-fixed-placement \
     --project_name=openpi-pi0 \
-    --exp-name=pi0-piper-pick-bottle-random-fixed-placement-lora \
+    --exp-name=pi0-piper-pick-bottle-random-fixed-placement-lora-bs-32 \
     --checkpoint_base_dir=/HostData/wenkai.zhang/exp/ \
     --fsdp_devices=2 \
-    --batch_size=24 \
-    --num_workers=4 \
+    --batch_size=32 \
+    --num_workers=8 \
     --overwrite \
-    --save_interval=4000 \
+    --save_interval=5000 \
     --keep_period=4000 \
-    --num_train_steps=40000
+    --num_train_steps=60000
 
 ```
 #### 25.03.09
@@ -140,4 +140,38 @@ uv run scripts/train.py pi0-piper-cleaning-the-ball-lora \
     --save_interval=4000 \
     --keep_period=4000 \
     --num_train_steps=40000
+```
+
+
+### Task3: agx-4000-multi-task
+#### 25.03.11
+
+```bash
+#1. conver data
+uv run examples/piper_real/convert_piper_data_to_lerobot_multitask.py \
+    --raw_dir /HostData/amigos_shared/agilex_all_datasets/ \
+    --local_dir /HostData/wenkai.zhang/data/lerobot-format/agx-4000-multi-task \
+    --repo_id amigos-robot/agx-4000-multi-task
+
+
+#2. compute normal
+CUDA_VISIBLE_DEVICES=0 uv run scripts/compute_norm_stats.py --config-name pi0-piper-agx-4000-multi-task
+
+
+#3. train
+CUDA_VISIBLE_DEVICES=4,5,6,7 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-4000-multi-task \
+    --name=pi0-piper-agx-4000\
+    --project_name=openpi-pi0 \
+    --exp-name=pi0-piper-agx-4000-multi-task-base \
+    --checkpoint_base_dir=/HostData/wenkai.zhang/exp/ \
+    --fsdp_devices=4 \
+    --batch_size=128 \
+    --num_workers=16 \
+    --overwrite \
+    --save_interval=4000 \
+    --keep_period=4000 \
+    --num_train_steps=60000
+
 ```

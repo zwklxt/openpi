@@ -90,7 +90,7 @@ class PiperInputs(transforms.DataTransformFn):
             inputs["actions"] = transforms.pad_to_dim(actions, self.action_dim)
 
         if "prompt" in data:
-            inputs["prompt"] = data["prompt"]
+            inputs["prompt"] = data["prompt"].replace("_", " ")
 
         return inputs
 

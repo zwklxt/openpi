@@ -4,8 +4,12 @@ import os
 import typing
 from typing import Protocol, SupportsIndex, TypeVar
 
+import sys
+# sys.path.insert(0, '/HostData/wenkai.zhang/repo/openpi/third_party/lerobot')
+
 import jax
 import jax.numpy as jnp
+
 import lerobot.common.datasets.lerobot_dataset as lerobot_dataset
 import numpy as np
 import torch
@@ -89,20 +93,24 @@ def create_dataset(data_config: _config.DataConfig, model_config: _model.BaseMod
     if repo_id == "fake":
         return FakeDataset(model_config, num_samples=1024)
 
+    print("load dataset_meta start: ", data_config.data_dir)
     dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, local_files_only=data_config.local_files_only,root=data_config.data_dir)
+    print("load dataset_meta done: ", dataset_meta)
     dataset = lerobot_dataset.LeRobotDataset(
         data_config.repo_id,
         delta_timestamps={
             key: [t / dataset_meta.fps for t in range(model_config.action_horizon)]
             for key in data_config.action_sequence_keys
         },
+        episodes=data_config.episodes,
         local_files_only=data_config.local_files_only,
         root=data_config.data_dir,
     )
 
+    print("load dataset done and start to transform prompt_from_task")
     if data_config.prompt_from_task:
         dataset = TransformedDataset(dataset, [_transforms.PromptFromLeRobotTask(dataset_meta.tasks)])
-
+    print("transform prompt_from_task done")    
     return dataset
 
 
@@ -213,7 +221,7 @@ class TorchDataLoader:
 
         if len(dataset) < local_batch_size:
             raise ValueError(f"Local batch size ({local_batch_size}) is larger than the dataset size ({len(dataset)}).")
-
+        
         if sharding is None:
             # Use data parallel sharding by default.
             sharding = jax.sharding.NamedSharding(

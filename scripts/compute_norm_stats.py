@@ -29,7 +29,10 @@ def create_dataset(config: _config.TrainConfig) -> tuple[_config.DataConfig, _da
     data_config = config.data.create(config.assets_dirs, config.model)
     if data_config.repo_id is None:
         raise ValueError("Data config must have a repo_id")
+    
+    print("dataloader create dataset ...")
     dataset = _data_loader.create_dataset(data_config, config.model)
+    print("datalodder transformed ...begin ...")
     dataset = _data_loader.TransformedDataset(
         dataset,
         [
@@ -39,12 +42,16 @@ def create_dataset(config: _config.TrainConfig) -> tuple[_config.DataConfig, _da
             RemoveStrings(),
         ],
     )
+    
+    print("dataset create done ..")
     return data_config, dataset
 
 
 def main(config_name: str, max_frames: int | None = None):
     config = _config.get_config(config_name)
+    print("get config done....")
     data_config, dataset = create_dataset(config)
+    print("get dataset done ...")
 
     num_frames = len(dataset)
     shuffle = False
@@ -53,14 +60,17 @@ def main(config_name: str, max_frames: int | None = None):
         num_frames = max_frames
         shuffle = True
 
+    print("begin to make data loader .....\n")
     data_loader = _data_loader.TorchDataLoader(
         dataset,
         local_batch_size=1, #这里默认的是1，可以根据GPU的内存大小进行调整
         num_workers=8,
         shuffle=shuffle,
         num_batches=num_frames,
+    
     )
 
+    print("dataloader make end, begin to compute stats")
     keys = ["state", "actions"]
     stats = {key: normalize.RunningStats() for key in keys}
 

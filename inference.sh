@@ -23,9 +23,9 @@ CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.dir=/data01/wenkai.zhang/experiment/pi0-base-180-adapt-pi/checkpoints/pi0-piper-pick-bottle-180/pi0-piper-pick-bottle-180/24000
 
 #piper-90
-CUDA_VISIBLE_DEVICES=0 uv run scripts/serve_policy.py policy:checkpoint \
+CUDA_VISIBLE_DEVICES=1 uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0-piper-pick-bottle-90 \
-    --policy.dir=/data01/wenkai.zhang/checkpoint_pi0_90/pi0-piper-grab_up_move_down_right/pi0-base-grab_up_move_down_right/55000
+    --policy.dir=/root/wenkai.zhang/exp/pi0-piper-pick-bottle-random-fixed-placement/pi0-piper-pick-bottle-random-fixed-placement-lora/39999
 
 
 #2. on local environment: eg. agx
