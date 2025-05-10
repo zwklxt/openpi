@@ -1727,7 +1727,6 @@ dependencies = [
     { name = "jsonlines" },
     { name = "numba" },
     { name = "opencv-python" },
-    { name = "pyav" },
     { name = "pymunk" },
     { name = "rerun-sdk" },
     { name = "termcolor" },
