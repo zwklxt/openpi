@@ -173,5 +173,263 @@ uv run scripts/train.py pi0-piper-agx-4000-multi-task \
     --save_interval=4000 \
     --keep_period=4000 \
     --num_train_steps=60000
+```
 
+## 紧急任务 pi0实验 
+### 4.21
+#### pi0-base + 1000数据
+```bash
+CUDA_VISIBLE_DEVICES=0,1 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-1000-multi-task \
+    --name=pi0-piper-agx-4000-stage1\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-1000-multi-task-base \
+    --checkpoint_base_dir=/root/yujie.wei/pi0/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=60000
+```
+
+#### pi0-base + 2000数据
+```bash
+CUDA_VISIBLE_DEVICES=2,3 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-2000-multi-task \
+    --name=pi0-piper-agx-4000-stage1\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-2000-multi-task-base \
+    --checkpoint_base_dir=/root/yujie.wei/pi0/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=60000
+```
+
+#### pi0-base + 3000数据
+```bash
+CUDA_VISIBLE_DEVICES=4,5 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-3000-multi-task \
+    --name=pi0-piper-agx-4000-stage1\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-3000-multi-task-base \
+    --checkpoint_base_dir=/root/yujie.wei/pi0/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=55000
+
+尝试恢复训练——失败，因为保存的时候没有保存优化器和训练步数，没法恢复训练，必须重新训
+```
+### 4.22
+#### pi0-base + 3000数据
+```bash
+CUDA_VISIBLE_DEVICES=4,5 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-3000-multi-task \
+    --name=pi0-piper-agx-4000-stage1\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-3000-multi-task-base \
+    --checkpoint_base_dir=/root/yujie.wei/pi0/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --overwrite \
+    --num_train_steps=54000
+```
+
+#### pi0 base 1000 抓瓶子
+```bash
+CUDA_VISIBLE_DEVICES=0,1 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-1000-pick-and-place-bottle \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-1000-pick-and-place-bottle \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 base 2000 抓瓶子
+```bash
+CUDA_VISIBLE_DEVICES=2,3 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-2000-pick-and-place-bottle \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-2000-pick-and-place-bottle \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 base 1000 抓砖块 圆形
+```bash
+CUDA_VISIBLE_DEVICES=0,1 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-1000-pick-and-place-bricks \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-1000-pick-and-place-bricks \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 base 2000 抓砖块 圆形
+```bash
+CUDA_VISIBLE_DEVICES=2,3 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-2000-pick-and-place-bricks \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-2000-pick-and-place-bricks \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+### 4.23
+
+#### pi0 base 3000 抓瓶子
+```bash
+CUDA_VISIBLE_DEVICES=2,3 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-3000-pick-and-place-bottle \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-3000-pick-and-place-bottle \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 base 3000 抓砖块 圆形
+```bash
+CUDA_VISIBLE_DEVICES=0,1 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-3000-pick-and-place-bricks \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-3000-pick-and-place-bricks \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 base 4000 抓瓶子
+```bash
+CUDA_VISIBLE_DEVICES=5,6 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-4000-pick-and-place-bottle \
+    --name=pi0-piper-agx-4000-stage2\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-4000-pick-and-place-bottle \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=41000
+```
+
+#### pi0 随机初始化
+```bash
+传输文件
+
+/root/.cache/openpi/openpi-assets/checkpoints/pi0_base
+
+scp -P 20040 -r "/root/.cache/openpi/openpi-assets/checkpoints/pi0_base" weiyujie@115.190.92.120:/file_system/vepfs/algorithm/yujie.wei/base_checkpoint
+
+```
+
+#### pi0-随机初始化 + 4000数据
+```bash
+CUDA_VISIBLE_DEVICES=0,1 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-random-4000-multi-task \
+    --name=pi0-piper-agx-4000-stage1\
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-random-4000-multi-task \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=55000
+
+```
+
+### 4.24
+#### pi0 随机初始化 4000 200 抓瓶子
+
+```bash
+CUDA_VISIBLE_DEVICES=4,5 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-random-init-4000-bottles \
+    --name=pi0-piper-agx-4000-stage2 \
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-random-init-4000-bottles \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=55000 \
+    --resume
+
+CUDA_VISIBLE_DEVICES=4,5 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-4000-test \
+    --name=pi0-piper-agx-4000-stage2 \
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-random-init-4000-bottles \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=55000 \
+    --resume
+```
+#### pi0 随机初始化 4000 200 抓砖块
+
+```bash
+CUDA_VISIBLE_DEVICES=2,3 \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run scripts/train.py pi0-piper-agx-random-init-4000-bricks \
+    --name=pi0-piper-agx-4000-stage2 \
+    --project_name=agx-4000 \
+    --exp-name=pi0-piper-agx-random-init-4000-bricks \
+    --checkpoint_base_dir=/root/wenkai.zhang/exp/ \
+    --fsdp_devices=2 \
+    --batch_size=32 \
+    --num_workers=16 \
+    --save_interval=5000 \
+    --num_train_steps=55000
 ```
