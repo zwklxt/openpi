@@ -47,3 +47,16 @@ python examples/piper_real/main.py \
     --args.save-log
 
 
+## pi0实验测试
+# bottle
+CUDA_VISIBLE_DEVICES=4,5 uv run scripts/serve_policy.py policy:checkpoint \
+    --policy.config=pi0-piper-agx-bottle-inference \
+    --policy.dir=/root/wenkai.zhang/exp/pi0-piper-agx-4000-stage2/pi0-piper-agx-base-pick-and-place-bottles/30000
+
+## pi0实验测试
+# bricks
+CUDA_VISIBLE_DEVICES=4,5 uv run scripts/serve_policy.py policy:checkpoint \
+    --policy.config=pi0-piper-agx-bricks-inference \
+    --policy.dir=/root/wenkai.zhang/exp/pi0-piper-agx-4000-stage2/pi0-piper-agx-base-pick-and-place-bricks/40000
+    
+### 远程测试命令
