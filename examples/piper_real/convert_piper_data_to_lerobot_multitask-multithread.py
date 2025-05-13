@@ -214,8 +214,8 @@ def load_raw_episode_data(
             invalid = True
 
         state = torch.from_numpy(ep["/observations/qpos"][:])
-        action = torch.from_numpy(ep["/action"][:])
-        # action = torch.from_numpy(ep["/observations/qpos"][:])
+        # action = torch.from_numpy(ep["/action"][:])
+        action = torch.from_numpy(ep["/observations/qpos"][:])
 
 
         velocity = None

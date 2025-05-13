@@ -24,6 +24,19 @@ source .venv/bin/activate
 uv pip install av=14.0.1
 ```
 
+#### 3. install the inference environment package
+install the inference environment package use uv
+```bash
+# All cmd run in openpi path:
+# Create virtual environment
+uv venv --python 3.11 examples/piper_real/.venv
+source examples/piper_real/.venv/bin/activate
+# generate requirement.txt
+uv pip compile examples/piper_real/requirements.in -o examples/piper_real/requirements.txt --python-version 3.11
+UV_HTTP_TIMEOUT=200 uv pip sync examples/piper_real/requirements.txt
+UV_HTTP_TIMEOUT=200 uv pip install -e packages/openpi-client
+
+```
 
 
 
